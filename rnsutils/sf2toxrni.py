@@ -24,7 +24,8 @@ import os
 from copy import deepcopy
 
 from rnsutils.instrument import RenoiseInstrument
-from sf2utils.sf2parse import Sf2File, Sf2Gen
+from sf2utils.generator import Sf2Gen
+from sf2utils.sf2parse import Sf2File
 
 __date__ = '2016-01-22'
 __updated__ = '2016-01-25'
