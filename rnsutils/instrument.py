@@ -43,7 +43,7 @@ class RenoiseInstrument(object):
         else:
             try:
                 self.load(template_filename)
-            except FileNotFoundError:
+            except IOError:
                 self.load(io.BytesIO(pkgutil.get_data('rnsutils', 'data/{}'.format(template_filename))))
 
             self.extract_sample_template()
