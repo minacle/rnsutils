@@ -14,18 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 import argparse
+import io
 import logging
 import math
-import sys
-
-import io
 import os
+import sys
 from copy import deepcopy
 
-from rnsutils.instrument import RenoiseInstrument
 from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
+
+from rnsutils.instrument import RenoiseInstrument
 
 __date__ = '2016-01-22'
 __updated__ = '2016-01-25'
