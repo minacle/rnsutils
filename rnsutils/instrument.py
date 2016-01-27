@@ -77,7 +77,11 @@ class RenoiseInstrument(object):
             self.sample_data = [z.read(sample_filename) for sample_filename in sorted(z.namelist()) if
                                 sample_filename.startswith('SampleData')]
 
-    def save(self, filename):
+    def save(self, filename, cleanup=True):
+
+        if cleanup:
+            self.cleanup()
+
         with ZipFile(filename, 'w', compression=ZIP_DEFLATED) as z:
             objectify.deannotate(self.root, cleanup_namespaces=True, xsi_nil=True)
             z.writestr("Instrument.xml", etree.tostring(self.root, pretty_print=True))
@@ -98,6 +102,12 @@ class RenoiseInstrument(object):
     @name.setter
     def name(self, value):
         self.root.Name = value
+
+    def cleanup(self):
+        # ensure that key mapping remains in the limits of what renoise supports
+        for sample in self.root.SampleGenerator.Samples.Sample:
+            sample.Mapping.NoteEnd = min(119, sample.Mapping.NoteEnd)
+            sample.Mapping.NoteStart = max(0, sample.Mapping.NoteStart)
 
 
 if __name__ == "__main__":

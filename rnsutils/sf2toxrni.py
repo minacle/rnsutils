@@ -35,49 +35,75 @@ __author__ = 'olivier@pcedev.com'
 
 
 class Sf2ToXrni(object):
-    WHITELIST_UNUSED_GEN_OPERS = {Sf2Gen.OPER_INITIAL_ATTENUATION}
+    WHITELIST_UNUSED_GEN_OPERS = {Sf2Gen.OPER_INITIAL_ATTENUATION, Sf2Gen.OPER_VIB_LFO_TO_PITCH,
+                                  Sf2Gen.OPER_DELAY_VIB_LFO, Sf2Gen.OPER_FREQ_VIB_LFO}
 
     def __init__(self, show_unused=False, **kwargs):
         self.show_unused = show_unused
         self.unused_gens = set()
 
     def convert_bag(self, sf2_bag, renoise_sample, renoise_modulation_set, default_sample, default_modulation_set):
+
+        # sample looping
         renoise_sample.LoopRelease = sf2_bag.sample_loop_on_noteoff
         renoise_sample.LoopMode = "Forward" if sf2_bag.sample_loop else "Off"
         renoise_sample.LoopStart = sf2_bag.cooked_loop_start
         renoise_sample.LoopEnd = sf2_bag.cooked_loop_end
-        renoise_sample.Panning = (sf2_bag.pan or 0) + 0.5
-        renoise_sample.Transpose = sf2_bag.tuning or 0
-        renoise_sample.FineTune = int(
-            128 * (sf2_bag.fine_tuning or (sf2_bag.sample and sf2_bag.sample.pitch_correction) or 0) / 100.)
 
+        # sample panning
+        renoise_sample.Panning = (sf2_bag.pan and sf2_bag.pan + 0.5) or default_sample.Panning
+
+        # sample tuning
+        renoise_sample.Transpose = sf2_bag.tuning or default_sample.Transpose
+        renoise_sample.FineTune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
+            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.FineTune
+
+        # volume envelope
         renoise_modulation_set.adhsr_release = self.to_attenuation(
             sf2_bag.volume_envelope_release) if sf2_bag.volume_envelope_release \
             else default_modulation_set.adhsr_release
 
+        # low pass filter
         renoise_modulation_set.lp_cutoff = self.freq_to_cutoff(
             sf2_bag.lp_cutoff) if sf2_bag.lp_cutoff else default_modulation_set.lp_cutoff
 
-        renoise_sample.Mapping.BaseNote = sf2_bag.base_note or (sf2_bag.sample and sf2_bag.sample.original_pitch) or 60
-        renoise_sample.Mapping.NoteStart, renoise_sample.Mapping.NoteEnd = sf2_bag.key_range or (0, 119)
-        renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (0, 127)
+        # base note
+        renoise_sample.Mapping.BaseNote = sf2_bag.base_note or (
+            sf2_bag.sample and sf2_bag.sample.original_pitch) or default_sample.Mapping.BaseNote
+
+        # key mapping (key range and velocity)
+        renoise_sample.Mapping.NoteStart, renoise_sample.Mapping.NoteEnd = sf2_bag.key_range or (
+            default_sample.Mapping.NoteStart, default_sample.Mapping.NoteEnd)
+
+        renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (
+            default_sample.Mapping.VelocityStart, default_sample.Mapping.VelocityEnd)
 
     def load_global_sample_settings(self, sf2_instrument, renoise_global_sample, renoise_global_modulation_set):
         global_chorus_send = 0
         global_reverb_send = 0
 
-        for sf2_bag in sf2_instrument.bags:
+        for sf2_bag_idx, sf2_bag in enumerate(sf2_instrument.bags):
             if sf2_bag.sample is None:
                 self.convert_bag(sf2_bag, renoise_global_sample, renoise_global_modulation_set, renoise_global_sample,
                                  renoise_global_modulation_set)
                 global_chorus_send = sf2_bag.chorus_send or 0
                 global_reverb_send = sf2_bag.reverb_send or 0
 
+                self.check_unused_bags(sf2_bag_idx, sf2_instrument.name, sf2_bag)
+
         return global_chorus_send, global_reverb_send
 
     def load_default_sample_settings(self, renoise_global_sample, renoise_global_modulation_set):
         renoise_global_modulation_set.lp_cutoff = self.freq_to_cutoff(20000)
         renoise_global_modulation_set.ahdsr_release = 0
+
+        renoise_global_sample.Panning = 0.5
+        renoise_global_sample.Transpose = 0
+        renoise_global_sample.FineTune = 0
+
+        renoise_global_sample.Mapping.BaseNote = 60
+        renoise_global_sample.Mapping.NoteStart, renoise_global_sample.Mapping.NoteEnd = (0, 119)
+        renoise_global_sample.Mapping.VelocityStart, renoise_global_sample.Mapping.VelocityEnd = (0, 127)
 
     def convert_instrument(self, sf2_instrument, renoise_instrument):
         # convert instrument meta data
@@ -133,14 +159,7 @@ class Sf2ToXrni(object):
 
             # check which generator where not used from the sf2, excluding those which have no mapping or are
             # ignored on purpose
-            current_instrument_unused_gens = {gen for gen in sf2_bag.unused_gens if
-                                              gen.oper not in self.WHITELIST_UNUSED_GEN_OPERS}
-            self.unused_gens |= current_instrument_unused_gens
-
-            if current_instrument_unused_gens and self.show_unused:
-                sys.stderr.write("Unused generator(s) for instrument {}, bag #{}:\n{}\n".format(
-                    renoise_instrument.name, bag_idx,
-                    "\n".join([gen.pretty_print() for gen in current_instrument_unused_gens])))
+            self.check_unused_bags(bag_idx, renoise_instrument.name, sf2_bag)
 
             bag_idx += 1
 
@@ -157,6 +176,15 @@ class Sf2ToXrni(object):
                 chorus_send) == 0 else sum(chorus_send) / float(len(chorus_send))) + global_chorus_send
         except AttributeError:
             pass
+
+    def check_unused_bags(self, bag_idx, instrument_name, sf2_bag):
+        current_instrument_unused_gens = {gen for gen in sf2_bag.unused_gens if
+                                          gen.oper not in self.WHITELIST_UNUSED_GEN_OPERS}
+        self.unused_gens |= current_instrument_unused_gens
+        if current_instrument_unused_gens and self.show_unused:
+            sys.stderr.write("Unused generator(s) for instrument {}, bag #{}:\n{}\n".format(
+                instrument_name, bag_idx,
+                "\n".join([gen.pretty_print() for gen in current_instrument_unused_gens])))
 
     def freq_to_cutoff(self, param):
         return 127. * max(0, min(1, math.log(param / 130.) / 5))
