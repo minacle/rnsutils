@@ -17,17 +17,17 @@
 from __future__ import print_function
 
 import argparse
-import io
 import logging
 import math
-import os
 import sys
+
+import io
+import os
 from copy import deepcopy
 
+from rnsutils.instrument import RenoiseInstrument
 from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
-
-from rnsutils.instrument import RenoiseInstrument
 
 __date__ = '2016-01-22'
 __updated__ = '2016-01-25'
@@ -48,7 +48,8 @@ class Sf2ToXrni(object):
         renoise_sample.LoopEnd = sf2_bag.cooked_loop_end
         renoise_sample.Panning = (sf2_bag.pan or 0) + 0.5
         renoise_sample.Transpose = sf2_bag.tuning or 0
-        renoise_sample.FineTune = int(128 * (sf2_bag.fine_tuning or 0) / 100.)
+        renoise_sample.FineTune = int(
+            128 * (sf2_bag.fine_tuning or (sf2_bag.sample and sf2_bag.sample.pitch_correction) or 0) / 100.)
 
         renoise_modulation_set.adhsr_release = self.to_attenuation(
             sf2_bag.volume_envelope_release) if sf2_bag.volume_envelope_release \
@@ -57,7 +58,7 @@ class Sf2ToXrni(object):
         renoise_modulation_set.lp_cutoff = self.freq_to_cutoff(
             sf2_bag.lp_cutoff) if sf2_bag.lp_cutoff else default_modulation_set.lp_cutoff
 
-        renoise_sample.Mapping.BaseNote = sf2_bag.base_note or 60
+        renoise_sample.Mapping.BaseNote = sf2_bag.base_note or (sf2_bag.sample and sf2_bag.sample.original_pitch) or 60
         renoise_sample.Mapping.NoteStart, renoise_sample.Mapping.NoteEnd = sf2_bag.key_range or (0, 119)
         renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (0, 127)
 
