@@ -14,12 +14,45 @@ class RenoiseSample(ObjectifiedElement):
 
 
 class RenoiseModulationSet(ObjectifiedElement):
+
     @property
-    def adhsr_release(self):
+    def ahdsr_attack(self):
+        return self.Devices.SampleAhdsrModulationDevice.Attack.Value
+
+    @ahdsr_attack.setter
+    def ahdsr_attack(self, value):
+        self.Devices.SampleAhdsrModulationDevice.Attack.Value = value
+
+    @property
+    def ahdsr_decay(self):
+        return self.Devices.SampleAhdsrModulationDevice.Decay.Value
+
+    @ahdsr_decay.setter
+    def ahdsr_decay(self, value):
+        self.Devices.SampleAhdsrModulationDevice.Decay.Value = value
+
+    @property
+    def ahdsr_hold(self):
+        return self.Devices.SampleAhdsrModulationDevice.Hold.Value
+
+    @ahdsr_hold.setter
+    def ahdsr_hold(self, value):
+        self.Devices.SampleAhdsrModulationDevice.Hold.Value = value
+
+    @property
+    def ahdsr_sustain(self):
+        return self.Devices.SampleAhdsrModulationDevice.Sustain.Value
+
+    @ahdsr_sustain.setter
+    def ahdsr_sustain(self, value):
+        self.Devices.SampleAhdsrModulationDevice.Sustain.Value = value
+
+    @property
+    def ahdsr_release(self):
         return self.Devices.SampleAhdsrModulationDevice.Release.Value
 
-    @adhsr_release.setter
-    def adhsr_release(self, value):
+    @ahdsr_release.setter
+    def ahdsr_release(self, value):
         self.Devices.SampleAhdsrModulationDevice.Release.Value = value
 
     @property

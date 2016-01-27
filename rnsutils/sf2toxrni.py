@@ -59,12 +59,25 @@ class Sf2ToXrni(object):
             sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.FineTune
 
         # volume envelope
-        renoise_modulation_set.adhsr_release = self.to_attenuation(
-            sf2_bag.volume_envelope_release) if sf2_bag.volume_envelope_release \
-            else default_modulation_set.adhsr_release
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = self.to_renoise_time(
+            sf2_bag.volume_envelope_attack) or default_modulation_set.ahdsr_attack
+
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = self.to_renoise_time(
+            sf2_bag.volume_envelope_decay) or default_modulation_set.ahdsr_decay
+
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = self.to_renoise_time(
+            sf2_bag.volume_envelope_hold) or default_modulation_set.ahdsr_hold
+
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = (
+            sf2_bag.volume_envelope_sustain is not None and (
+               max(0,
+                   1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
+
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = self.to_renoise_time(
+            sf2_bag.volume_envelope_release) or default_modulation_set.ahdsr_release
 
         # low pass filter
-        renoise_modulation_set.lp_cutoff = self.freq_to_cutoff(
+        renoise_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(
             sf2_bag.lp_cutoff) if sf2_bag.lp_cutoff else default_modulation_set.lp_cutoff
 
         # base note
@@ -94,8 +107,12 @@ class Sf2ToXrni(object):
         return global_chorus_send, global_reverb_send
 
     def load_default_sample_settings(self, renoise_global_sample, renoise_global_modulation_set):
-        renoise_global_modulation_set.lp_cutoff = self.freq_to_cutoff(20000)
-        renoise_global_modulation_set.ahdsr_release = 0
+        renoise_global_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(20000)
+        renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = 0
+        renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = 0
+        renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = 0
+        renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = 1
+        renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = 0
 
         renoise_global_sample.Panning = 0.5
         renoise_global_sample.Transpose = 0
@@ -189,8 +206,8 @@ class Sf2ToXrni(object):
     def freq_to_cutoff(self, param):
         return 127. * max(0, min(1, math.log(param / 130.) / 5))
 
-    def to_attenuation(self, envelope_attenuation):
-        return math.pow((envelope_attenuation or 0) / 60., 1 / 3.)
+    def to_renoise_time(self, envelope_attenuation):
+        return math.pow(envelope_attenuation / 60., 1 / 3.) if envelope_attenuation else None
 
 
 def main(argv=None):
