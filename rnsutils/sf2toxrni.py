@@ -212,11 +212,14 @@ def main(argv=None):
                             default=False,
                             help="debug parsing [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
-                            help="quiet operation [default: %(default)s")
-        parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True)
+                            help="quiet operation [default: %(default)s]")
+        parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
+                            help="show unused generators [default: %(default)s]")
         parser.add_argument("--no-unused", dest="show_unused", action="store_false")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
                             help="output directory [default: current directory]")
+        parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
+                            default="empty-31.xrni")
 
         parser.add_argument("sf2_filename", help="input file in SoundFont2 format")
 
@@ -250,7 +253,7 @@ def main(argv=None):
 
             # noinspection PyBroadException
             try:
-                renoise_instrument = RenoiseInstrument()
+                renoise_instrument = RenoiseInstrument(template_filename=opts.template)
                 sf2_to_xrni.convert_instrument(sf2_instrument, renoise_instrument)
 
                 output_filename = os.path.join(opts.output_dir or '',
