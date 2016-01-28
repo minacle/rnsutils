@@ -30,7 +30,7 @@ from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
 
 __date__ = '2016-01-22'
-__updated__ = '2016-01-25'
+__updated__ = '2016-01-28'
 __author__ = 'olivier@pcedev.com'
 
 
@@ -212,7 +212,7 @@ class Sf2ToXrni(object):
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v0.5"
+    program_version = "v0.6"
     program_build_date = "%s" % __updated__
 
     program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
@@ -238,7 +238,7 @@ def main(argv=None):
         parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
                             default="empty-31.xrni")
 
-        parser.add_argument("sf2_filename", help="input file in SoundFont2 format")
+        parser.add_argument("sf2_filename", help="input file in SoundFont2 format", nargs="+")
 
         # process options
         opts = parser.parse_args(argv)
@@ -254,44 +254,49 @@ def main(argv=None):
     else:
         logging.root.setLevel(logging.INFO)
 
-    with open(opts.sf2_filename, "rb") as sf2_file:
-        sf2 = Sf2File(sf2_file)
+    for sf2_filename in opts.sf2_filename:
 
-        # print(sf2.pretty_print())
+        if not opts.quiet:
+            print("Reading instruments from '{}'".format(sf2_filename))
 
-        sf2_to_xrni = Sf2ToXrni(**vars(opts))
+        with open(sf2_filename, "rb") as sf2_file:
+            sf2 = Sf2File(sf2_file)
 
-        for instrument_idx, sf2_instrument in enumerate(sf2.instruments):
-            if sf2_instrument.is_sentinel():
-                continue
+            # print(sf2.pretty_print())
 
-            if not opts.quiet:
-                print("Converting '{}'...".format(sf2_instrument.name), end='')
+            sf2_to_xrni = Sf2ToXrni(**vars(opts))
 
-            # noinspection PyBroadException
-            try:
-                renoise_instrument = RenoiseInstrument(template_filename=opts.template)
-                sf2_to_xrni.convert_instrument(sf2_instrument, renoise_instrument)
+            for instrument_idx, sf2_instrument in enumerate(sf2.instruments):
+                if sf2_instrument.is_sentinel():
+                    continue
 
-                output_filename = os.path.join(opts.output_dir or '',
-                                               '{}_{}.xrni'.format(instrument_idx, renoise_instrument.name))
-                # noinspection PyTypeChecker
-                renoise_instrument.save(output_filename)
                 if not opts.quiet:
-                    print(" saved {}".format(output_filename))
-            except Exception:
-                if not opts.quiet:
-                    print(" FAILED")
-                logging.exception("Failed to convert instrument")
+                    print("Converting '{}'...".format(sf2_instrument.name), end='')
 
-                # pprint.pprint(sf2.samples)
-                # sf2.samples[3].export('/tmp/test.wav')
+                # noinspection PyBroadException
+                try:
+                    renoise_instrument = RenoiseInstrument(template_filename=opts.template)
+                    sf2_to_xrni.convert_instrument(sf2_instrument, renoise_instrument)
 
-                # pprint.pprint(sf2.presets)
-                # pprint.pprint(sf2.instruments)
-                #
-                # for instrument in sf2.instruments:
-                #     print(instrument.pretty_print())
+                    output_filename = os.path.join(opts.output_dir or '',
+                                                   '{}_{}.xrni'.format(instrument_idx, renoise_instrument.name))
+                    # noinspection PyTypeChecker
+                    renoise_instrument.save(output_filename)
+                    if not opts.quiet:
+                        print(" saved {}".format(output_filename))
+                except Exception:
+                    if not opts.quiet:
+                        print(" FAILED")
+                    logging.exception("Failed to convert instrument")
+
+                    # pprint.pprint(sf2.samples)
+                    # sf2.samples[3].export('/tmp/test.wav')
+
+                    # pprint.pprint(sf2.presets)
+                    # pprint.pprint(sf2.instruments)
+                    #
+                    # for instrument in sf2.instruments:
+                    #     print(instrument.pretty_print())
 
     return 0
 
