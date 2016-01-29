@@ -117,6 +117,7 @@ setup(
     entry_points={
         'console_scripts': [
             'sf2toxrni=rnsutils.sf2toxrni:main',
+            'sfztoxrni=rnsutils.sfztoxrni:main',
         ],
     },
 
