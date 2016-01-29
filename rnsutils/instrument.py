@@ -1,3 +1,4 @@
+import math
 import pkgutil
 import pprint
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -8,6 +9,9 @@ from lxml.objectify import ObjectifiedElement
 
 from .utils import guesstimate_audio_extension
 
+
+def second_to_renoise_time(duration):
+    return math.pow(duration / 60., 1 / 3.) if duration else None
 
 class RenoiseSample(ObjectifiedElement):
     pass

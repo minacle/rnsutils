@@ -21,21 +21,49 @@ import logging
 import math
 import sys
 
-import io
 import os
+import re
 from copy import deepcopy
 
-from rnsutils.instrument import RenoiseInstrument
+from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time
 
 __date__ = '2016-01-28'
 __updated__ = '2016-01-28'
 __author__ = 'olivier@pcedev.com'
 
 
+def search_case_insensitive_path(path):
+    if os.path.exists(path) or path == '':
+        return path
+
+    head, tail = os.path.split(path)
+
+    existing_head = search_case_insensitive_path(head)
+    if existing_head is None:
+        return None
+
+    tail = tail.lower()
+    for sub in os.listdir(existing_head):
+        if sub.lower() == tail:
+            return os.path.join(existing_head, sub)
+
+    return None
+
+
+SFZ_NOTE_LETTER_OFFSET = {'a': 9, 'b': 11, 'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7}
+
+
+def sfz_note_to_midi_key(sfz_note):
+    sharp = '#' in sfz_note
+    letter = sfz_note[0].lower()
+    octave = int(sfz_note[-1])
+    return SFZ_NOTE_LETTER_OFFSET[letter] + ((octave + 1) * 12) + (1 if sharp else 0)
+
+
 class SfzToXrni(object):
-    def __init__(self, show_unused=False, **kwargs):
+    def __init__(self, sfz_path, show_unused=False, **kwargs):
+        self.sfz_path = sfz_path
         self.show_unused = show_unused
-        self.unused_gens = set()
 
     def convert_bag(self, sf2_bag, renoise_sample, renoise_modulation_set, default_sample, default_modulation_set):
 
@@ -64,9 +92,10 @@ class SfzToXrni(object):
             sf2_bag.volume_envelope_hold) or default_modulation_set.ahdsr_hold
 
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = (
-                                                                                       sf2_bag.volume_envelope_sustain is not None and (
-                                                                                           max(0,
-                                                                                               1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
+            sf2_bag.volume_envelope_sustain is not None and (
+                sf2_bag.volume_envelope_sustain is not None and (
+                    max(0,
+                        1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain)
 
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = self.to_renoise_time(
             sf2_bag.volume_envelope_release) or default_modulation_set.ahdsr_release
@@ -86,21 +115,6 @@ class SfzToXrni(object):
         renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (
             default_sample.Mapping.VelocityStart, default_sample.Mapping.VelocityEnd)
 
-    def load_global_sample_settings(self, sf2_instrument, renoise_global_sample, renoise_global_modulation_set):
-        global_chorus_send = 0
-        global_reverb_send = 0
-
-        for sf2_bag_idx, sf2_bag in enumerate(sf2_instrument.bags):
-            if sf2_bag.sample is None:
-                self.convert_bag(sf2_bag, renoise_global_sample, renoise_global_modulation_set, renoise_global_sample,
-                                 renoise_global_modulation_set)
-                global_chorus_send = sf2_bag.chorus_send or 0
-                global_reverb_send = sf2_bag.reverb_send or 0
-
-                self.check_unused_bags(sf2_bag_idx, sf2_instrument.name, sf2_bag)
-
-        return global_chorus_send, global_reverb_send
-
     def load_default_sample_settings(self, renoise_global_sample, renoise_global_modulation_set):
         renoise_global_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(20000)
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = 0
@@ -108,6 +122,11 @@ class SfzToXrni(object):
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = 0
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = 1
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = 0
+
+        renoise_global_sample.LoopRelease = True
+        renoise_global_sample.LoopMode = "Off"
+        renoise_global_sample.LoopStart = None
+        renoise_global_sample.LoopEnd = None
 
         renoise_global_sample.Panning = 0.5
         renoise_global_sample.Transpose = 0
@@ -118,53 +137,59 @@ class SfzToXrni(object):
         renoise_global_sample.Mapping.VelocityStart, renoise_global_sample.Mapping.VelocityEnd = (0, 127)
 
     def convert_instrument(self, sfz_filename, renoise_instrument):
+
+        renoise_instrument.root.find('GlobalProperties/*[Name="SF2 reverb"]').Value = 0
+        renoise_instrument.root.find('GlobalProperties/*[Name="SF2 chorus"]').Value = 0
+
         with open(sfz_filename, 'rt') as sfz_file:
             # convert instrument meta data
             renoise_instrument.name = os.path.basename(sfz_filename)
 
             # load global properties if any
-            renoise_global_sample = deepcopy(renoise_instrument.sample_template)
-            renoise_global_modulation_set = deepcopy(renoise_instrument.modulation_set_template)
+            renoise_default_sample = deepcopy(renoise_instrument.sample_template)
+            renoise_default_modulation_set = deepcopy(renoise_instrument.modulation_set_template)
 
-            self.load_default_sample_settings(renoise_global_sample, renoise_global_modulation_set)
+            self.load_default_sample_settings(renoise_default_sample, renoise_default_modulation_set)
 
             sfz_content = self.parse_sfz(sfz_file.readlines())
-
-            for section_name, section_content in sfz_content:
-                if section_name == 'group':
-                    pass
-                    # self.convert_section(section_content, renoise_global_sample, renoise_global_modulation_set, renoise_global_sample, renoise_global_modulation_set)
 
             section_idx = 0
 
             for section_name, section_content in sfz_content:
+
                 if section_name == 'group':
+                    self.convert_section(section_name, section_content, renoise_default_sample,
+                                         renoise_default_modulation_set, renoise_default_sample,
+                                         renoise_default_modulation_set)
                     continue
 
                 # convert sample meta data in xml
-                renoise_sample = deepcopy(renoise_instrument.sample_template)
-                renoise_modulation_set = deepcopy(renoise_instrument.modulation_set_template)
+                renoise_sample = deepcopy(renoise_default_sample)
+                renoise_modulation_set = deepcopy(renoise_default_modulation_set)
 
                 # link sample to its dedicated modulation set
                 renoise_sample.ModulationSetIndex = section_idx
-                #                self.convert_bag(sf2_bag, renoise_sample, renoise_modulation_set, renoise_global_sample,
-                #                                 renoise_global_modulation_set)
 
-                #                renoise_sample.Name = sf2_bag.sample.name
+                self.convert_section(section_name, section_content, renoise_sample, renoise_modulation_set,
+                                     renoise_default_sample, renoise_default_modulation_set)
 
                 renoise_instrument.root.SampleGenerator.Samples.append(renoise_sample)
                 renoise_instrument.root.SampleGenerator.ModulationSets.append(renoise_modulation_set)
 
-                # copy wav content from sf2 to renoise
-                wav_content = io.BytesIO()
-                #                sf2_bag.sample.export(wav_content)
-                renoise_instrument.sample_data.append(wav_content.getvalue())
+                # copy wav content from sfz to renoise
+                sample_filename = search_case_insensitive_path(
+                        os.path.join(self.sfz_path, str(renoise_sample.FileName)))
+
+                if sample_filename is None:
+                    logging.info("missing sample file '%s'", renoise_sample.FileName)
+                else:
+                    with open(sample_filename, 'rb') as sample_content:
+                        renoise_instrument.sample_data.append(sample_content.read())
 
                 section_idx += 1
 
     def parse_sfz(self, sfz):
 
-        import re
         match_section = re.compile('^<(.*)>$')
 
         sections = []
@@ -195,6 +220,36 @@ class SfzToXrni(object):
     def to_renoise_time(self, envelope_attenuation):
         return math.pow(envelope_attenuation / 60., 1 / 3.) if envelope_attenuation else None
 
+    def convert_section(self, section_name, section_content, renoise_sample, renoise_modulation_set,
+                        renoise_default_sample, renoise_default_modulation_set):
+
+        unused_keys = []
+
+        for key in section_content.keys():
+            value = section_content[key]
+            if key == 'sample':
+                renoise_sample.FileName = re.sub(r'\\+', r'/', value)
+            elif key == 'lokey':
+                renoise_sample.Mapping.NoteStart = sfz_note_to_midi_key(value)
+            elif key == 'hikey':
+                renoise_sample.Mapping.NoteEnd = sfz_note_to_midi_key(value)
+            elif key == 'lovel':
+                renoise_sample.Mapping.VelocityStart = value
+            elif key == 'hivel':
+                renoise_sample.Mapping.VelocityEnd = value
+            elif key == 'pitch_keycenter':
+                renoise_sample.Mapping.BaseNote = sfz_note_to_midi_key(value)
+            elif key == 'ampeg_release':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = second_to_renoise_time(
+                    float(value))
+            else:
+                unused_keys.append(key)
+
+        if unused_keys and self.show_unused:
+            sys.stderr.write(
+                    "Unused key(s) for section {}:\n{}\n".format(section_name,
+                                                                 "\n".join([" - " + k for k in unused_keys])))
+
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
@@ -220,6 +275,9 @@ def main(argv=None):
                             help="output directory [default: current directory]")
         parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
                             default="empty-31.xrni")
+        parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
+                            help="show unused generators [default: %(default)s]")
+        parser.add_argument("--no-unused", dest="show_unused", action="store_false")
 
         parser.add_argument("sfz_filename", help="input file in SFZ format", nargs="+")
 
@@ -244,19 +302,21 @@ def main(argv=None):
 
         # noinspection PyBroadException
         try:
-            sfz_to_xrni = SfzToXrni(**vars(opts))
+            sfz_path = os.path.dirname(sfz_filename)
+            sfz_to_xrni = SfzToXrni(sfz_path=sfz_path, **vars(opts))
 
             renoise_instrument = RenoiseInstrument(template_filename=opts.template)
             sfz_to_xrni.convert_instrument(sfz_filename, renoise_instrument)
 
-            output_filename = os.path.join(opts.output_dir or '', '{}.xrni'.format(renoise_instrument.name))
+            filename_without_extension, extension = os.path.splitext(os.path.basename(sfz_filename))
+            output_filename = os.path.join(opts.output_dir or sfz_path, '{}.xrni'.format(filename_without_extension))
             renoise_instrument.save(output_filename)
 
             if not opts.quiet:
-                print(" saved {}".format(output_filename))
+                print("Saved {}".format(output_filename))
         except Exception:
             if not opts.quiet:
-                print(" FAILED")
+                print("FAILED")
             logging.exception("Failed to convert instrument")
 
     return 0
