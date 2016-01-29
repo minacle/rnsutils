@@ -41,6 +41,8 @@ def search_case_insensitive_path(path):
     existing_head = search_case_insensitive_path(head)
     if existing_head is None:
         return None
+    if existing_head == '':
+        existing_head = '.'
 
     tail = tail.lower()
     for sub in os.listdir(existing_head):
@@ -78,8 +80,8 @@ class SfzToXrni(object):
 
         # sample tuning
         renoise_sample.Transpose = sf2_bag.tuning or default_sample.Transpose
-        renoise_sample.FineTune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
-            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.FineTune
+        renoise_sample.Finetune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
+            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.Finetune
 
         # volume envelope
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = self.to_renoise_time(
@@ -122,6 +124,7 @@ class SfzToXrni(object):
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = 0
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = 1
         renoise_global_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = 0
+        renoise_global_modulation_set.FilterType = RenoiseInstrument.FILTER_NONE
 
         renoise_global_sample.LoopRelease = True
         renoise_global_sample.LoopMode = "Off"
@@ -130,7 +133,7 @@ class SfzToXrni(object):
 
         renoise_global_sample.Panning = 0.5
         renoise_global_sample.Transpose = 0
-        renoise_global_sample.FineTune = 0
+        renoise_global_sample.Finetune = 0
 
         renoise_global_sample.Mapping.BaseNote = 60
         renoise_global_sample.Mapping.NoteStart, renoise_global_sample.Mapping.NoteEnd = (0, 119)
@@ -229,6 +232,7 @@ class SfzToXrni(object):
             value = section_content[key]
             if key == 'sample':
                 renoise_sample.FileName = re.sub(r'\\+', r'/', value)
+#                renoise_sample.Name = os.path.basename(value)
             elif key == 'lokey':
                 renoise_sample.Mapping.NoteStart = sfz_note_to_midi_key(value)
             elif key == 'hikey':
@@ -242,6 +246,18 @@ class SfzToXrni(object):
             elif key == 'ampeg_release':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = second_to_renoise_time(
                     float(value))
+            elif key == 'ampeg_attack':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = second_to_renoise_time(
+                    float(value))
+            elif key == 'tune':
+                renoise_sample.Finetune = int(128 * float(value) / 100.)
+            elif key == 'fil_type':
+                if value.lower().startswith('lp'):
+                    renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_CLEAN_LP
+                elif value.lower().startswith('hp'):
+                    renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_CLEAN_HP
+                else:
+                    renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_NONE
             else:
                 unused_keys.append(key)
 

@@ -69,6 +69,10 @@ class RenoiseModulationSet(ObjectifiedElement):
 
 
 class RenoiseInstrument(object):
+    FILTER_NONE = 0
+    FILTER_CLEAN_HP = 5
+    FILTER_CLEAN_LP = 1
+
     def __init__(self, filename=None, template_filename="empty-31.xrni"):
         self.root = None
         self.sample_data = None
