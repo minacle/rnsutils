@@ -26,6 +26,7 @@ import re
 from copy import deepcopy
 
 from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time, db_to_renoise_volume
+from rnsutils.utils import ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG, encode_audio_file
 
 __date__ = '2016-01-28'
 __updated__ = '2016-01-28'
@@ -63,59 +64,10 @@ def sfz_note_to_midi_key(sfz_note):
 
 
 class SfzToXrni(object):
-    def __init__(self, sfz_path, show_unused=False, **kwargs):
+    def __init__(self, sfz_path, show_unused=False, encoding=ENCODING_NONE, **kwargs):
+        self.encoding = encoding
         self.sfz_path = sfz_path
         self.show_unused = show_unused
-
-    def convert_bag(self, sf2_bag, renoise_sample, renoise_modulation_set, default_sample, default_modulation_set):
-
-        # sample looping
-        renoise_sample.LoopRelease = sf2_bag.sample_loop_on_noteoff
-        renoise_sample.LoopMode = "Forward" if sf2_bag.sample_loop else "Off"
-        renoise_sample.LoopStart = sf2_bag.cooked_loop_start
-        renoise_sample.LoopEnd = sf2_bag.cooked_loop_end
-
-        # sample panning
-        renoise_sample.Panning = (sf2_bag.pan and sf2_bag.pan + 0.5) or default_sample.Panning
-
-        # sample tuning
-        renoise_sample.Transpose = sf2_bag.tuning or default_sample.Transpose
-        renoise_sample.Finetune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
-            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.Finetune
-
-        # volume envelope
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = self.to_renoise_time(
-            sf2_bag.volume_envelope_attack) or default_modulation_set.ahdsr_attack
-
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = self.to_renoise_time(
-            sf2_bag.volume_envelope_decay) or default_modulation_set.ahdsr_decay
-
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = self.to_renoise_time(
-            sf2_bag.volume_envelope_hold) or default_modulation_set.ahdsr_hold
-
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = (
-            sf2_bag.volume_envelope_sustain is not None and (
-                sf2_bag.volume_envelope_sustain is not None and (
-                    max(0,
-                        1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain)
-
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = self.to_renoise_time(
-            sf2_bag.volume_envelope_release) or default_modulation_set.ahdsr_release
-
-        # low pass filter
-        renoise_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(
-            sf2_bag.lp_cutoff) if sf2_bag.lp_cutoff else default_modulation_set.lp_cutoff
-
-        # base note
-        renoise_sample.Mapping.BaseNote = sf2_bag.base_note or (
-            sf2_bag.sample and sf2_bag.sample.original_pitch) or default_sample.Mapping.BaseNote
-
-        # key mapping (key range and velocity)
-        renoise_sample.Mapping.NoteStart, renoise_sample.Mapping.NoteEnd = sf2_bag.key_range or (
-            default_sample.Mapping.NoteStart, default_sample.Mapping.NoteEnd)
-
-        renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (
-            default_sample.Mapping.VelocityStart, default_sample.Mapping.VelocityEnd)
 
     def load_default_sample_settings(self, renoise_global_sample, renoise_global_modulation_set):
         renoise_global_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(20000)
@@ -182,13 +134,13 @@ class SfzToXrni(object):
 
                 # copy wav content from sfz to renoise
                 sample_filename = search_case_insensitive_path(
-                        os.path.join(self.sfz_path, str(renoise_sample.FileName)))
+                    os.path.join(self.sfz_path, str(renoise_sample.FileName)))
 
                 if sample_filename is None:
                     logging.info("missing sample file '%s'", renoise_sample.FileName)
                 else:
                     with open(sample_filename, 'rb') as sample_content:
-                        renoise_instrument.sample_data.append(sample_content.read())
+                        renoise_instrument.sample_data.append(encode_audio_file(sample_content.read(), self.encoding))
 
                 section_idx += 1
 
@@ -238,7 +190,7 @@ class SfzToXrni(object):
                 if renoise_sample.FileName.pyval[0] in (r'/', r'\\'):
                     renoise_sample.FileName = renoise_sample.FileName.pyval[1:]
 
-#                renoise_sample.Name = os.path.basename(value)
+                renoise_sample.Name, _ = os.path.splitext(os.path.basename(renoise_sample.FileName.pyval))
             elif key == 'lokey':
                 renoise_sample.Mapping.NoteStart = sfz_note_to_midi_key(value)
             elif key == 'hikey':
@@ -254,15 +206,15 @@ class SfzToXrni(object):
                     float(value))
             elif key == 'ampeg_hold':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = second_to_renoise_time(
-                        float(value))
+                    float(value))
             elif key == 'ampeg_decay':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = second_to_renoise_time(
-                        float(value))
+                    float(value))
             elif key == 'ampeg_sustain':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = 1 - float(value) / 100.
             elif key == 'ampeg_release':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = second_to_renoise_time(
-                        float(value))
+                    float(value))
             elif key == 'tune':
                 renoise_sample.Finetune = int(128 * float(value) / 100.)
             elif key == 'transpose':
@@ -306,8 +258,8 @@ class SfzToXrni(object):
 
         if unused_keys and self.show_unused:
             sys.stderr.write(
-                    "Unused key(s) for section {}:\n{}\n".format(section_name,
-                                                                 "\n".join([" - " + k for k in unused_keys])))
+                "Unused key(s) for section {}:\n{}\n".format(section_name,
+                                                             "\n".join([" - " + k for k in unused_keys])))
 
 
 def main(argv=None):
@@ -328,6 +280,8 @@ def main(argv=None):
         parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                             default=False,
                             help="debug parsing [default: %(default)s]")
+        parser.add_argument("-e", "--encode", dest="encoding", choices=[ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG],
+                            default="none", help="encode samples into given format [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="quiet operation [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
