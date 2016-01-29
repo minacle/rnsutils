@@ -55,8 +55,8 @@ class Sf2ToXrni(object):
 
         # sample tuning
         renoise_sample.Transpose = sf2_bag.tuning or default_sample.Transpose
-        renoise_sample.FineTune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
-            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.FineTune
+        renoise_sample.Finetune = (sf2_bag.fine_tuning and (int(128 * sf2_bag.fine_tuning) / 100.)) or (
+            sf2_bag.sample and int(128 * (sf2_bag.sample.pitch_correction) / 100.)) or default_sample.Finetune
 
         # volume envelope
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = self.to_renoise_time(
@@ -116,7 +116,7 @@ class Sf2ToXrni(object):
 
         renoise_global_sample.Panning = 0.5
         renoise_global_sample.Transpose = 0
-        renoise_global_sample.FineTune = 0
+        renoise_global_sample.Finetune = 0
 
         renoise_global_sample.Mapping.BaseNote = 60
         renoise_global_sample.Mapping.NoteStart, renoise_global_sample.Mapping.NoteEnd = (0, 119)
