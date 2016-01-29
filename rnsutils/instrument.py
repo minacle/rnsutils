@@ -13,6 +13,9 @@ from .utils import guesstimate_audio_extension
 def second_to_renoise_time(duration):
     return math.pow(duration / 60., 1 / 3.) if duration else None
 
+def db_to_renoise_volume(volume):
+    return math.exp(volume / 8.68) if volume else None
+
 class RenoiseSample(ObjectifiedElement):
     pass
 
@@ -69,6 +72,12 @@ class RenoiseModulationSet(ObjectifiedElement):
 
 
 class RenoiseInstrument(object):
+    OVERLAP_CYCLE = "Cycle"
+    OVERLAP_ALL = "Play All"
+
+    LOOP_NONE = "Off"
+    LOOP_FORWARD = "Forward"
+
     FILTER_NONE = 0
     FILTER_CLEAN_HP = 5
     FILTER_CLEAN_LP = 1

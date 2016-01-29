@@ -25,7 +25,7 @@ import os
 import re
 from copy import deepcopy
 
-from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time
+from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time, db_to_renoise_volume
 
 __date__ = '2016-01-28'
 __updated__ = '2016-01-28'
@@ -143,6 +143,7 @@ class SfzToXrni(object):
 
         renoise_instrument.root.find('GlobalProperties/*[Name="SF2 reverb"]').Value = 0
         renoise_instrument.root.find('GlobalProperties/*[Name="SF2 chorus"]').Value = 0
+        renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_ALL
 
         with open(sfz_filename, 'rt') as sfz_file:
             # convert instrument meta data
@@ -163,7 +164,7 @@ class SfzToXrni(object):
                 if section_name == 'group':
                     self.convert_section(section_name, section_content, renoise_default_sample,
                                          renoise_default_modulation_set, renoise_default_sample,
-                                         renoise_default_modulation_set)
+                                         renoise_default_modulation_set, renoise_instrument)
                     continue
 
                 # convert sample meta data in xml
@@ -174,7 +175,7 @@ class SfzToXrni(object):
                 renoise_sample.ModulationSetIndex = section_idx
 
                 self.convert_section(section_name, section_content, renoise_sample, renoise_modulation_set,
-                                     renoise_default_sample, renoise_default_modulation_set)
+                                     renoise_default_sample, renoise_default_modulation_set, renoise_instrument)
 
                 renoise_instrument.root.SampleGenerator.Samples.append(renoise_sample)
                 renoise_instrument.root.SampleGenerator.ModulationSets.append(renoise_modulation_set)
@@ -224,14 +225,19 @@ class SfzToXrni(object):
         return math.pow(envelope_attenuation / 60., 1 / 3.) if envelope_attenuation else None
 
     def convert_section(self, section_name, section_content, renoise_sample, renoise_modulation_set,
-                        renoise_default_sample, renoise_default_modulation_set):
+                        renoise_default_sample, renoise_default_modulation_set, renoise_instrument):
 
         unused_keys = []
 
         for key in section_content.keys():
-            value = section_content[key]
+            value = section_content[key].lower()
             if key == 'sample':
                 renoise_sample.FileName = re.sub(r'\\+', r'/', value)
+
+                # remove first char if file separator
+                if renoise_sample.FileName.pyval[0] in (r'/', r'\\'):
+                    renoise_sample.FileName = renoise_sample.FileName.pyval[1:]
+
 #                renoise_sample.Name = os.path.basename(value)
             elif key == 'lokey':
                 renoise_sample.Mapping.NoteStart = sfz_note_to_midi_key(value)
@@ -243,14 +249,28 @@ class SfzToXrni(object):
                 renoise_sample.Mapping.VelocityEnd = value
             elif key == 'pitch_keycenter':
                 renoise_sample.Mapping.BaseNote = sfz_note_to_midi_key(value)
-            elif key == 'ampeg_release':
-                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = second_to_renoise_time(
-                    float(value))
             elif key == 'ampeg_attack':
                 renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Attack.Value = second_to_renoise_time(
                     float(value))
+            elif key == 'ampeg_hold':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = second_to_renoise_time(
+                        float(value))
+            elif key == 'ampeg_decay':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Decay.Value = second_to_renoise_time(
+                        float(value))
+            elif key == 'ampeg_sustain':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = 1 - float(value) / 100.
+            elif key == 'ampeg_release':
+                renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = second_to_renoise_time(
+                        float(value))
             elif key == 'tune':
                 renoise_sample.Finetune = int(128 * float(value) / 100.)
+            elif key == 'transpose':
+                renoise_sample.Transpose = value
+            elif key == 'volume':
+                renoise_sample.Volume = db_to_renoise_volume(float(value))
+            elif key == 'pan':
+                renoise_sample.Panning = 0.5 + float(value) / 200.
             elif key == 'fil_type':
                 if value.lower().startswith('lp'):
                     renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_CLEAN_LP
@@ -258,8 +278,31 @@ class SfzToXrni(object):
                     renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_CLEAN_HP
                 else:
                     renoise_modulation_set.FilterType = RenoiseInstrument.FILTER_NONE
+            elif key == 'loop_mode':
+                if value == 'one_shot':
+                    renoise_sample.LoopMode = RenoiseInstrument.LOOP_FORWARD
+                else:
+                    renoise_sample.LoopMode = RenoiseInstrument.LOOP_NONE
+            elif key == 'loop_start':
+                renoise_sample.LoopStart = value
+            elif key == 'loop_end':
+                renoise_sample.LoopEnd = value
+            elif key == 'seq_position':
+                if int(value) > 1:
+                    logging.info("Switch the entire instrument to sample cycling")
+                    renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_CYCLE
+            elif key == 'seq_length':
+                pass
+            elif key == 'group':
+                logging.info("Ignoring mute group info")
+            elif key == 'off_by':
+                logging.info("Ignoring mute group info")
             else:
                 unused_keys.append(key)
+
+        # disable loop when no loop duration was set
+        if renoise_sample.LoopStart.pyval is None or renoise_sample.LoopEnd.pyval is None:
+            renoise_sample.LoopMode = RenoiseInstrument.LOOP_NONE
 
         if unused_keys and self.show_unused:
             sys.stderr.write(
