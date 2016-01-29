@@ -26,6 +26,7 @@ import os
 from copy import deepcopy
 
 from rnsutils.instrument import RenoiseInstrument
+from rnsutils.utils import ENCODING_NONE, encode_audio_file, ENCODING_FLAC, ENCODING_OGG
 from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
 
@@ -38,8 +39,9 @@ class Sf2ToXrni(object):
     WHITELIST_UNUSED_GEN_OPERS = {Sf2Gen.OPER_INITIAL_ATTENUATION, Sf2Gen.OPER_VIB_LFO_TO_PITCH,
                                   Sf2Gen.OPER_DELAY_VIB_LFO, Sf2Gen.OPER_FREQ_VIB_LFO}
 
-    def __init__(self, show_unused=False, **kwargs):
+    def __init__(self, show_unused=False, encoding=ENCODING_NONE, **kwargs):
         self.show_unused = show_unused
+        self.encoding = encoding
         self.unused_gens = set()
 
     def convert_bag(self, sf2_bag, renoise_sample, renoise_modulation_set, default_sample, default_modulation_set):
@@ -69,9 +71,9 @@ class Sf2ToXrni(object):
             sf2_bag.volume_envelope_hold) or default_modulation_set.ahdsr_hold
 
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = (
-            sf2_bag.volume_envelope_sustain is not None and (
-               max(0,
-                   1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
+                                                                                       sf2_bag.volume_envelope_sustain is not None and (
+                                                                                           max(0,
+                                                                                               1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
 
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = self.to_renoise_time(
             sf2_bag.volume_envelope_release) or default_modulation_set.ahdsr_release
@@ -172,7 +174,7 @@ class Sf2ToXrni(object):
             # copy wav content from sf2 to renoise
             wav_content = io.BytesIO()
             sf2_bag.sample.export(wav_content)
-            renoise_instrument.sample_data.append(wav_content.getvalue())
+            renoise_instrument.sample_data.append(encode_audio_file(wav_content.getvalue(), self.encoding))
 
             # check which generator where not used from the sf2, excluding those which have no mapping or are
             # ignored on purpose
@@ -228,6 +230,8 @@ def main(argv=None):
         parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                             default=False,
                             help="debug parsing [default: %(default)s]")
+        parser.add_argument("-e", "--encode", dest="encoding", choices=[ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG],
+                            default="none", help="encode samples into given format [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="quiet operation [default: %(default)s]")
         parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
