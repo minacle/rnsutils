@@ -13,15 +13,27 @@ from .utils import guesstimate_audio_extension
 def second_to_renoise_time(duration):
     return math.pow(duration / 60., 1 / 3.) if duration else None
 
+
 def db_to_renoise_volume(volume):
     return math.exp(volume / 8.68) if volume else None
+
+
+def _elements_equal(e1, e2):
+    if e1 is None and e2 is None: return True
+    if e1 is None or e2 is None: return False
+    if e1.tag != e2.tag: return False
+    if e1.text != e2.text: return False
+    if e1.tail != e2.tail: return False
+    if e1.attrib != e2.attrib: return False
+    if len(e1) != len(e2): return False
+    return all(_elements_equal(c1, c2) for c1, c2 in zip(e1.iterchildren(), e2.iterchildren()))
+
 
 class RenoiseSample(ObjectifiedElement):
     pass
 
 
 class RenoiseModulationSet(ObjectifiedElement):
-
     @property
     def ahdsr_attack(self):
         return self.Devices.SampleAhdsrModulationDevice.Attack.Value
@@ -158,6 +170,32 @@ class RenoiseInstrument(object):
         for sample in self.root.SampleGenerator.Samples.Sample:
             sample.Mapping.NoteEnd = min(119, sample.Mapping.NoteEnd)
             sample.Mapping.NoteStart = max(0, sample.Mapping.NoteStart)
+
+        modulation_set_idx = 0
+        while modulation_set_idx < len(self.root.SampleGenerator.ModulationSets.ModulationSet):
+
+            lhs_modulation_set = self.root.SampleGenerator.ModulationSets.ModulationSet[modulation_set_idx]
+
+            secondary_modulation_set_idx = modulation_set_idx + 1
+            while secondary_modulation_set_idx < len(self.root.SampleGenerator.ModulationSets.ModulationSet):
+
+                rhs_modulation_set = self.root.SampleGenerator.ModulationSets.ModulationSet[
+                    secondary_modulation_set_idx]
+
+                if _elements_equal(lhs_modulation_set, rhs_modulation_set):
+                    self._replace_modulation_set(secondary_modulation_set_idx, modulation_set_idx)
+                else:
+                    secondary_modulation_set_idx += 1
+
+            modulation_set_idx += 1
+
+    def _replace_modulation_set(self, from_idx, to_idx):
+        for sample in self.root.SampleGenerator.Samples.Sample:
+            if sample.ModulationSetIndex > from_idx:
+                sample.ModulationSetIndex = sample.ModulationSetIndex - 1
+            elif sample.ModulationSetIndex == from_idx:
+                sample.ModulationSetIndex = to_idx
+        del self.root.SampleGenerator.ModulationSets.ModulationSet[from_idx]
 
 
 if __name__ == "__main__":
