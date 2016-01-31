@@ -18,14 +18,16 @@ ENCODING_FLAC = "flac"
 ENCODING_OGG = "ogg"
 
 
-def encode_audio_file(sample_content, encoding):
-    if encoding == ENCODING_FLAC:
+def _call_encoder(func):
+    def inner(sample_content):
         in_filename = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
         out_filename = tempfile.NamedTemporaryFile(suffix='.flac', delete=False).name
         try:
             with open(in_filename, "wb") as infile:
                 infile.write(sample_content)
-            subprocess.check_call(["flac", in_filename, "-f", "-o", out_filename])
+
+            func(in_filename, out_filename).communicate()
+
             with open(out_filename, "rb") as outfile:
                 return outfile.read()
         except:
@@ -34,19 +36,25 @@ def encode_audio_file(sample_content, encoding):
             os.remove(in_filename)
             os.remove(out_filename)
 
+    return inner
+
+
+@_call_encoder
+def _encode_flac(in_filename, out_filename):
+    return subprocess.Popen(["flac", in_filename, "-f", "-o", out_filename], stderr=subprocess.STDOUT,
+                            stdout=subprocess.PIPE)
+
+
+@_call_encoder
+def _encode_ogg(in_filename, out_filename):
+    return subprocess.Popen(["oggenc", in_filename, "-o", out_filename], stderr=subprocess.STDOUT,
+                            stdout=subprocess.PIPE)
+
+
+def encode_audio_file(sample_content, encoding):
+    if encoding == ENCODING_FLAC:
+        return _encode_flac(sample_content)
     elif encoding == ENCODING_OGG:
-        in_filename = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
-        out_filename = tempfile.NamedTemporaryFile(suffix='.ogg', delete=False).name
-        try:
-            with open(in_filename, "wb") as infile:
-                infile.write(sample_content)
-            subprocess.check_call(["oggenc", in_filename, "-o", out_filename])
-            with open(out_filename, "rb") as outfile:
-                return outfile.read()
-        except:
-            logging.exception("Error while converting to ogg")
-        finally:
-            os.remove(in_filename)
-            os.remove(out_filename)
+        return _encode_ogg(sample_content)
 
     return sample_content
