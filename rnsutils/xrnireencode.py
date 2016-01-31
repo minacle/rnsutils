@@ -36,7 +36,7 @@ def main(argv=None):
     program_build_date = "%s" % __updated__
 
     program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
-    program_longdesc = '''Convert SFZ file into renoise instrument'''
+    program_longdesc = '''Reencode samples in renoise instrument'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
     if argv is None:

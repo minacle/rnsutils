@@ -19,7 +19,7 @@ Alternatively, RnsUtils can be run directly from sources after a git pull::
     cd rnsutils && python setup.py install
 
 
-sf2toXrni
+sf2toxrni
 ---------
 
 **sf2toxrni** is a command line utility which convert SoundFont 2 instruments into renoise instruments (.xrni).
@@ -93,6 +93,69 @@ from SoundFont 2 instruments only.
 **sf2toxrni** does not support :
     * vibrato
     * initial volume attenuation (always minus infinite in result, it seems like it'd be a pita to support otherwise)
+
+sfztoxrni
+---------
+
+Similarly to the **sf2toxrni** converter, **sfztoxrni** convert SFZ files into renoise instruments (.xrni).
+Renoise supporting now natively SFZ files, this converter is only useful on SFZ instruments needing
+more than one modulation set (different ADHSR settings depending on the velocity/key mapping) or
+a more aggressive sample filename search (like for SFZ built under case insensitive filesystem and read in
+case sensitive filesystem). As SFZ support in Renoise will progress, this converter will be deprecated.
+
+::
+
+    usage: sfztoxrni [-h] [-d] [-e {none,flac,ogg}] [-q] [-o OUTPUT_DIR]
+                     [-t TEMPLATE] [-u] [--no-unused]
+                     sfz_filename [sfz_filename ...]
+
+    GPL v3+ 2016 Olivier Jolly
+
+    positional arguments:
+      sfz_filename          input file in SFZ format
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d, --debug           debug parsing [default: False]
+      -e {none,flac,ogg}, --encode {none,flac,ogg}
+                            encode samples into given format [default: none]
+      -q, --quiet           quiet operation [default: False]
+      -o OUTPUT_DIR, --ouput-dir OUTPUT_DIR
+                            output directory [default: current directory]
+      -t TEMPLATE           template filename [default: empty-31.xrni]
+      -u, --unused          show unused generators [default: True]
+      --no-unused
+
+    Convert SFZ file into renoise instrument
+
+
+xrnireencode
+------------
+
+**Xrnireencode** is a command line utility to reencode samples in renoise instrument (.xrni).
+It can convert to **flac** or **ogg** one or more instruments given on command line.
+
+::
+
+    usage: xrnireencode [-h] [-d] [-e {flac,ogg}] [-q] [-o OUTPUT_DIR]
+                        xrni_filename [xrni_filename ...]
+
+    GPL v3+ 2016 Olivier Jolly
+
+    positional arguments:
+      xrni_filename         input file in XRNI format
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d, --debug           debug parsing [default: False]
+      -e {flac,ogg}, --encode {flac,ogg}
+                            encode samples into given format [default: flac]
+      -q, --quiet           quiet operation [default: False]
+      -o OUTPUT_DIR, --ouput-dir OUTPUT_DIR
+                            output directory [default: current directory]
+
+    Reencode samples in renoise instrument
+
 
 Library use
 -----------
