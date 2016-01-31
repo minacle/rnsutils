@@ -20,8 +20,9 @@ ENCODING_OGG = "ogg"
 
 def _call_encoder(func):
     def inner(sample_content):
+        out_format = guesstimate_audio_extension(sample_content)
         in_filename = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
-        out_filename = tempfile.NamedTemporaryFile(suffix='.flac', delete=False).name
+        out_filename = tempfile.NamedTemporaryFile(suffix='.{}'.format(out_format), delete=False).name
         try:
             with open(in_filename, "wb") as infile:
                 infile.write(sample_content)
@@ -31,7 +32,7 @@ def _call_encoder(func):
             with open(out_filename, "rb") as outfile:
                 return outfile.read()
         except:
-            logging.exception("Error while converting to flac")
+            logging.exception("Error while converting to %s", out_format)
         finally:
             os.remove(in_filename)
             os.remove(out_filename)
