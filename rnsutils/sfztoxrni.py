@@ -285,6 +285,8 @@ def main(argv=None):
                             help="debug parsing [default: %(default)s]")
         parser.add_argument("-e", "--encode", dest="encoding", choices=[ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG],
                             default="none", help="encode samples into given format [default: %(default)s]")
+        parser.add_argument("-f", "--force", dest="force", default=False, action="store_true",
+                            help="force overwriting existing files [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="quiet operation [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
@@ -326,7 +328,7 @@ def main(argv=None):
 
             filename_without_extension, extension = os.path.splitext(os.path.basename(sfz_filename))
             output_filename = os.path.join(opts.output_dir or sfz_path, '{}.xrni'.format(filename_without_extension))
-            renoise_instrument.save(output_filename)
+            renoise_instrument.save(output_filename, overwrite=opts.force)
 
             if not opts.quiet:
                 print("Saved {}".format(output_filename))
