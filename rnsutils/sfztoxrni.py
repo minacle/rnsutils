@@ -97,6 +97,9 @@ class SfzToXrni(object):
         renoise_instrument.root.find('GlobalProperties/*[Name="SF2 chorus"]').Value = 0
         renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_ALL
 
+        renoise_instrument.root.Comments = "Converted from SFZ {} with sfztoxrni " \
+                                           "( https://gitlab.com/zeograd/rnsutils )".format(sfz_filename)
+
         with open(sfz_filename, 'rt') as sfz_file:
             # convert instrument meta data
             renoise_instrument.name = os.path.basename(sfz_filename)
