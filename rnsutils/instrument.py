@@ -1,9 +1,11 @@
+import logging
 import math
 import pkgutil
 import pprint
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import io
+import os
 from lxml import etree, objectify
 from lxml.objectify import ObjectifiedElement
 
@@ -139,10 +141,14 @@ class RenoiseInstrument(object):
             self.sample_data = [z.read(sample_filename) for sample_filename in sorted(z.namelist()) if
                                 sample_filename.startswith('SampleData')]
 
-    def save(self, filename, cleanup=True):
+    def save(self, filename, overwrite=False, cleanup=True):
 
         if cleanup:
             self.cleanup()
+
+        if os.path.isfile(filename) and not overwrite:
+            logging.error("Destination file %s exists and overwrite was not forced", filename)
+            return
 
         with ZipFile(filename, 'w', compression=ZIP_DEFLATED) as z:
             objectify.deannotate(self.root, cleanup_namespaces=True, xsi_nil=True)
