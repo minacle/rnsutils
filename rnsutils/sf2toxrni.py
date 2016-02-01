@@ -127,9 +127,10 @@ class Sf2ToXrni(object):
     def convert_instrument(self, sf2_instrument, renoise_instrument):
         # convert instrument meta data
         renoise_instrument.name = sf2_instrument.name
-        renoise_instrument.root.Comments = "Converted from instrument {} with sf2toxrni " \
-                                           "( https://gitlab.com/zeograd/rnsutils )" \
-                                           "\n---\n{}".format(sf2_instrument.name, sf2_instrument.parent.info)
+
+        renoise_instrument.comment = "Converted from instrument {} with sf2toxrni " \
+                                     "( https://gitlab.com/zeograd/rnsutils )" \
+                                     "\n---\n{}".format(sf2_instrument.name, sf2_instrument.parent.info)
 
         # load global properties if any
         renoise_global_sample = deepcopy(renoise_instrument.sample_template)
