@@ -53,16 +53,12 @@ def main(argv=None):
         parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                             default=False,
                             help="debug parsing [default: %(default)s]")
-        parser.add_argument("-a", "--add", dest="action", action="store_const", const=ACTION_APPEND,
-                            help="add a tag")
+        parser.add_argument("-a", "--add", dest="tags_to_add", action="append", help="add a tag")
         parser.add_argument("-c", "--clear", dest="action", action="store_const", const=ACTION_CLEAR,
                             help="clear all tags")
-        parser.add_argument("-r", "--remove", dest="action", action="store_const", const=ACTION_DELETE,
-                            help="remove a tag")
+        parser.add_argument("-r", "--remove", dest="tags_to_remove", action="append", help="remove a tag")
         parser.add_argument("-v", "--view", dest="action", action="store_const", const=ACTION_VIEW,
                             help="view all tags [default action]")
-        parser.add_argument("-t", "--tag", dest="tag",
-                            help="tag name [default reads from standard input]")
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
 
@@ -80,20 +76,18 @@ def main(argv=None):
     else:
         logging.root.setLevel(logging.INFO)
 
-    if opts.action in (ACTION_DELETE, ACTION_APPEND) and opts.tag is None:
-        opts.tag = sys.stdin.read()
-
     for xrni_filename in opts.xrni_filename:
         renoise_instrument = RenoiseInstrument(xrni_filename)
 
-        if opts.action == ACTION_DELETE:
-            renoise_instrument.remove_tag(opts.tag)
-            renoise_instrument.save(xrni_filename, overwrite=True)
-        elif opts.action == ACTION_CLEAR:
+        if opts.action == ACTION_CLEAR:
             del renoise_instrument.tags
             renoise_instrument.save(xrni_filename, overwrite=True)
-        elif opts.action == ACTION_APPEND:
-            renoise_instrument.append_tag(opts.tag)
+
+        if opts.tags_to_add or opts.tags_to_remove:
+            for tag in opts.tags_to_remove or []:
+                renoise_instrument.remove_tag(tag)
+            for tag in opts.tags_to_add or []:
+                renoise_instrument.append_tag(tag)
             renoise_instrument.save(xrni_filename, overwrite=True)
         else:
             tags = renoise_instrument.tags
