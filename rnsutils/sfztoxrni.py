@@ -284,7 +284,7 @@ def main(argv=None):
                             default=False,
                             help="debug parsing [default: %(default)s]")
         parser.add_argument("-e", "--encode", dest="encoding", choices=[ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG],
-                            default="none", help="encode samples into given format [default: %(default)s]")
+                            default=ENCODING_FLAC, help="encode samples into given format [default: %(default)s]")
         parser.add_argument("-f", "--force", dest="force", default=False, action="store_true",
                             help="force overwriting existing files [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
