@@ -1,0 +1,8 @@
+## [0.8.0] - 2016-02-02
+### Added
+- added xrnicomment CLI
+- added xrnitag CLI
+- added xrniorganise CLI
+
+### Changed
+- sf2toxrni and sfztoxrni default encoding is now flac
