@@ -223,6 +223,7 @@ class RenoiseInstrument(object):
             tag = self.root.GlobalProperties.Tags.Tag[tag_idx]
             if tag.text == tag_to_remove:
                 del self.root.GlobalProperties.Tags.Tag[tag_idx]
+                return
 
     def cleanup(self):
         # ensure that key mapping remains in the limits of what renoise supports
