@@ -120,6 +120,7 @@ setup(
             'sfztoxrni=rnsutils.sfztoxrni:main',
             'xrnireencode=rnsutils.xrnireencode:main',
             'xrnicomment=rnsutils.xrnicomment:main',
+            'xrnitag=rnsutils.xrnitag:main',
         ],
     },
 

@@ -191,6 +191,39 @@ class RenoiseInstrument(object):
     def comment(self):
         del self.root.GlobalProperties.Comments
 
+    @property
+    def tags(self):
+        try:
+            return self.root.GlobalProperties.Tags.Tag
+        except AttributeError:
+            return None
+
+    @tags.setter
+    def tags(self, value):
+        E = objectify.E
+
+        if 'Tags' not in self.root.GlobalProperties.getchildren():
+            self.root.GlobalProperties.Tags = E.Tags()
+
+        self.root.GlobalProperties.Tags.Tag = [E.Tag(tag) for tag in value]
+
+    @tags.deleter
+    def tags(self):
+        del self.root.GlobalProperties.Tags
+
+    def append_tag(self, tag):
+        tags = self.tags
+        if tags is None:
+            self.tags = [tag]
+        else:
+            self.root.GlobalProperties.Tags.append(objectify.E.Tag(tag))
+
+    def remove_tag(self, tag_to_remove):
+        for tag_idx in range(len(self.root.GlobalProperties.Tags.getchildren())):
+            tag = self.root.GlobalProperties.Tags.Tag[tag_idx]
+            if tag.text == tag_to_remove:
+                del self.root.GlobalProperties.Tags.Tag[tag_idx]
+
     def cleanup(self):
         # ensure that key mapping remains in the limits of what renoise supports
         for sample in self.root.SampleGenerator.Samples.Sample:
