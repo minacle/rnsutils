@@ -119,6 +119,7 @@ setup(
             'sf2toxrni=rnsutils.sf2toxrni:main',
             'sfztoxrni=rnsutils.sfztoxrni:main',
             'xrnireencode=rnsutils.xrnireencode:main',
+            'xrnicomment=rnsutils.xrnicomment:main',
         ],
     },
 

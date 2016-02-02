@@ -173,7 +173,10 @@ class RenoiseInstrument(object):
 
     @property
     def comment(self):
-        return "\n".join(self.root.GlobalProperties.Comments.Comment)
+        try:
+            return "\n".join([comment.pyval for comment in self.root.GlobalProperties.Comments.Comment])
+        except AttributeError:
+            return None
 
     @comment.setter
     def comment(self, value):
