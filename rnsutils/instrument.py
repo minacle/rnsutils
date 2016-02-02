@@ -187,6 +187,10 @@ class RenoiseInstrument(object):
 
         self.root.GlobalProperties.Comments.Comment = [E.Comment(line) for line in value.split("\n")]
 
+    @comment.deleter
+    def comment(self):
+        del self.root.GlobalProperties.Comments
+
     def cleanup(self):
         # ensure that key mapping remains in the limits of what renoise supports
         for sample in self.root.SampleGenerator.Samples.Sample:

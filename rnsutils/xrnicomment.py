@@ -31,6 +31,7 @@ __author__ = 'olivier@pcedev.com'
 ACTION_VIEW = 0
 ACTION_EDIT = 1
 ACTION_DELETE = 2
+ACTION_APPEND = 3
 
 
 def main(argv=None):
@@ -51,8 +52,12 @@ def main(argv=None):
         parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                             default=False,
                             help="debug parsing [default: %(default)s]")
+        parser.add_argument("-a", "--append", dest="action", action="store_const", const=ACTION_APPEND,
+                            help="append to comment")
         parser.add_argument("-e", "--edit", dest="action", action="store_const", default=ACTION_VIEW, const=ACTION_EDIT,
-                            help="edit comment with standard input content")
+                            help="edit comment")
+        parser.add_argument("-m", "--message", dest="message",
+                            help="edit message content [default reads from standard input]")
         parser.add_argument("-r", "--remove", dest="action", action="store_const", const=ACTION_DELETE,
                             help="remove comment")
         parser.add_argument("-v", "--view", dest="action", action="store_const", const=ACTION_VIEW,
@@ -74,9 +79,23 @@ def main(argv=None):
     else:
         logging.root.setLevel(logging.INFO)
 
+    if opts.action in (ACTION_EDIT, ACTION_APPEND) and opts.message is None:
+        opts.message = sys.stdin.read()
+
     for xrni_filename in opts.xrni_filename:
         renoise_instrument = RenoiseInstrument(xrni_filename)
-        print(renoise_instrument.comment)
+
+        if opts.action == ACTION_DELETE:
+            del renoise_instrument.comment
+            renoise_instrument.save(xrni_filename, overwrite=True)
+        elif opts.action == ACTION_EDIT:
+            renoise_instrument.comment = opts.message
+            renoise_instrument.save(xrni_filename, overwrite=True)
+        elif opts.action == ACTION_APPEND:
+            renoise_instrument.comment += '\n' + opts.message
+            renoise_instrument.save(xrni_filename, overwrite=True)
+        else:
+            print(renoise_instrument.comment)
 
     return 0
 
