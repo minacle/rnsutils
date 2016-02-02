@@ -27,6 +27,7 @@ from the SoundFont 2 instrument properties (generators) as possible. All read pr
 renoise instrument.
 
 ::
+
     usage: sf2toxrni [-h] [-d] [-e {none,flac,ogg}] [-f] [-q] [-u] [--no-unused]
                      [-o OUTPUT_DIR] [-t TEMPLATE]
                      sf2_filename [sf2_filename ...]
@@ -105,6 +106,7 @@ a more aggressive sample filename search (like for SFZ built under case insensit
 case sensitive filesystem). As SFZ support in Renoise will progress, this converter will be deprecated.
 
 ::
+
     usage: sfztoxrni [-h] [-d] [-e {none,flac,ogg}] [-f] [-q] [-o OUTPUT_DIR]
                      [-t TEMPLATE] [-u] [--no-unused]
                      sfz_filename [sfz_filename ...]
