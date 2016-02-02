@@ -62,7 +62,7 @@ def main(argv=None):
     program_build_date = "%s" % __updated__
 
     program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
-    program_longdesc = '''Display or change XRNI tags'''
+    program_longdesc = '''Organise XRNI according to their tags'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
     if argv is None:
@@ -78,6 +78,8 @@ def main(argv=None):
                             help="clean destination directory before operations")
         parser.add_argument("-n", "--dry-run", dest="dry_run", action="store_true", default=False,
                             help="don't actually perform filesystem operations [default: %(default)s]")
+        parser.add_argument("-r", "--recursive", dest="recurse_dir", action="store_true", default=False,
+                            help="recursively parse directories [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir", help="output directory", required=True)
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
@@ -103,31 +105,42 @@ def main(argv=None):
             clean_directory(opts.output_dir)
 
     for xrni_filename in opts.xrni_filename:
-        xrni_full_filename = os.path.realpath(xrni_filename)
-        renoise_instrument = RenoiseInstrument(xrni_full_filename)
-
-        tags = renoise_instrument.tags
-        destination_directories = get_destination_directories(tags, opts)
-        if opts.dry_run:
-            for directory in destination_directories:
-                print("I would link {} to {}".format(xrni_full_filename,
-                                                     os.path.join(directory, os.path.basename(xrni_filename))))
-        else:
-            for directory in destination_directories:
-
-                try:
-                    os.makedirs(directory)
-                except FileExistsError:
-                    pass
-
-                link_full_filename = os.path.join(directory, os.path.basename(xrni_filename))
-
-                if os.path.islink(link_full_filename):
-                    os.unlink(link_full_filename)
-
-                os.symlink(xrni_full_filename, link_full_filename)
+        organise_file(opts, xrni_filename)
 
     return 0
+
+
+def organise_file(opts, filename):
+    full_filename = os.path.realpath(filename)
+
+    # recursively parse directory if told to
+    if os.path.isdir(full_filename):
+        if opts.recurse_dir:
+            for file in os.listdir(full_filename):
+                organise_file(opts, os.path.join(full_filename, file))
+        return
+
+    renoise_instrument = RenoiseInstrument(full_filename)
+    tags = renoise_instrument.tags
+    destination_directories = get_destination_directories(tags, opts)
+    if opts.dry_run:
+        for directory in destination_directories:
+            print("I would link {} to {}".format(full_filename,
+                                                 os.path.join(directory, os.path.basename(filename))))
+    else:
+        for directory in destination_directories:
+
+            try:
+                os.makedirs(directory)
+            except FileExistsError:
+                pass
+
+            link_full_filename = os.path.join(directory, os.path.basename(filename))
+
+            if os.path.islink(link_full_filename):
+                os.unlink(link_full_filename)
+
+            os.symlink(full_filename, link_full_filename)
 
 
 if __name__ == "__main__":
