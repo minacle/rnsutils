@@ -3,8 +3,9 @@ RnsUtils
 
 RnsUtils is Renoise related library and companion utility.
 It is meant for developers aiming to use generate renoise
-file or renoise users wanting to convert SoundFont 2 to
-renoise instruments
+file or renoise users wanting to convert SoundFont 2 or SFZ to
+renoise instruments, reencode instruments to .flac or .ogg,
+manipulate tags and comments in instuments.
 
 Installation
 ------------
@@ -155,6 +156,63 @@ It can convert to **flac** or **ogg** one or more instruments given on command l
                             output directory [default: current directory]
 
     Reencode samples in renoise instrument
+
+xrnicomment
+-----------
+
+**xrnicomment** is a command line utility to manipulate comments in renoise instruments (.xrni).
+It can read, clear, replace and append content to the comment in one or more xrni files.
+
+::
+
+    usage: xrnicomment [-h] [-d] [-a] [-e] [-m MESSAGE] [-r] [-v]
+                       xrni_filename [xrni_filename ...]
+
+    GPL v3+ 2016 Olivier Jolly
+
+    positional arguments:
+      xrni_filename         input file in XRNI format
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d, --debug           debug parsing [default: False]
+      -a, --append          append to comment
+      -e, --edit            edit comment
+      -m MESSAGE, --message MESSAGE
+                            edit message content [default reads from standard
+                            input]
+      -r, --remove          remove comment
+      -v, --view            view comment [default action]
+
+    Display or change XRNI comments
+
+xrnitag
+-------
+
+**xrnitag** is a command line utility to manipulate tags in renoise instruments (.xrni).
+It can read, clear, remove or add tag to the tag list in one or more xrni files.
+If you want to edit a tag, you can remove it and then add the new one.
+
+::
+
+    usage: xrnitag [-h] [-d] [-a] [-c] [-r] [-v] [-t TAG]
+                   xrni_filename [xrni_filename ...]
+
+    GPL v3+ 2016 Olivier Jolly
+
+    positional arguments:
+      xrni_filename      input file in XRNI format
+
+    optional arguments:
+      -h, --help         show this help message and exit
+      -d, --debug        debug parsing [default: False]
+      -a, --add          add a tag
+      -c, --clear        clear all tags
+      -r, --remove       remove a tag
+      -v, --view         view all tags [default action]
+      -t TAG, --tag TAG  tag name [default reads from standard input]
+
+    Display or change XRNI tags
 
 
 Library use
