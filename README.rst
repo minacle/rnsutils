@@ -2,10 +2,8 @@ RnsUtils
 ========
 
 RnsUtils is Renoise related library and companion utility.
-It is meant for developers aiming to use generate renoise
-file or renoise users wanting to convert SoundFont 2 or SFZ to
-renoise instruments, reencode instruments to .flac or .ogg,
-manipulate tags and comments in instuments.
+It is meant for developers aiming to use generate renoise file or renoise users wanting to convert SoundFont 2 or SFZ to renoise instruments,
+reencode instruments to .flac or .ogg, manipulate tags and comments in instruments or organise a xrni library based on those tags.
 
 Installation
 ------------
@@ -29,10 +27,9 @@ from the SoundFont 2 instrument properties (generators) as possible. All read pr
 renoise instrument.
 
 ::
-
-    usage: sf2toxrni [-h] [-d] [-q] [-u] [--no-unused] [-o OUTPUT_DIR]
-                     [-t TEMPLATE]
-                     sf2_filename
+    usage: sf2toxrni [-h] [-d] [-e {none,flac,ogg}] [-f] [-q] [-u] [--no-unused]
+                     [-o OUTPUT_DIR] [-t TEMPLATE]
+                     sf2_filename [sf2_filename ...]
 
     GPL v3+ 2016 Olivier Jolly
 
@@ -42,6 +39,9 @@ renoise instrument.
     optional arguments:
       -h, --help            show this help message and exit
       -d, --debug           debug parsing [default: False]
+      -e {none,flac,ogg}, --encode {none,flac,ogg}
+                            encode samples into given format [default: flac]
+      -f, --force           force overwriting existing files [default: False]
       -q, --quiet           quiet operation [default: False]
       -u, --unused          show unused generators [default: True]
       --no-unused
@@ -105,8 +105,7 @@ a more aggressive sample filename search (like for SFZ built under case insensit
 case sensitive filesystem). As SFZ support in Renoise will progress, this converter will be deprecated.
 
 ::
-
-    usage: sfztoxrni [-h] [-d] [-e {none,flac,ogg}] [-q] [-o OUTPUT_DIR]
+    usage: sfztoxrni [-h] [-d] [-e {none,flac,ogg}] [-f] [-q] [-o OUTPUT_DIR]
                      [-t TEMPLATE] [-u] [--no-unused]
                      sfz_filename [sfz_filename ...]
 
@@ -119,7 +118,8 @@ case sensitive filesystem). As SFZ support in Renoise will progress, this conver
       -h, --help            show this help message and exit
       -d, --debug           debug parsing [default: False]
       -e {none,flac,ogg}, --encode {none,flac,ogg}
-                            encode samples into given format [default: none]
+                            encode samples into given format [default: flac]
+      -f, --force           force overwriting existing files [default: False]
       -q, --quiet           quiet operation [default: False]
       -o OUTPUT_DIR, --ouput-dir OUTPUT_DIR
                             output directory [default: current directory]
@@ -162,6 +162,8 @@ xrnicomment
 
 **xrnicomment** is a command line utility to manipulate comments in renoise instruments (.xrni).
 It can read, clear, replace and append content to the comment in one or more xrni files.
+It is compatible with renoise 3.0+ instruments and intercompatible with "instrument info" tool
+( http://forum.renoise.com/index.php/topic/43434-new-tool-30-instrument-info/ ).
 
 ::
 
@@ -192,27 +194,127 @@ xrnitag
 **xrnitag** is a command line utility to manipulate tags in renoise instruments (.xrni).
 It can read, clear, remove or add tag to the tag list in one or more xrni files.
 If you want to edit a tag, you can remove it and then add the new one.
+**xrnitag** is compatible with renoise 3.0+ instruments and intercompatible with "instrument info" tool
+( http://forum.renoise.com/index.php/topic/43434-new-tool-30-instrument-info/ ).
 
 ::
 
-    usage: xrnitag [-h] [-d] [-a] [-c] [-r] [-v] [-t TAG]
+    usage: xrnitag [-h] [-d] [-a TAGS_TO_ADD] [-c] [-r TAGS_TO_REMOVE] [-v]
                    xrni_filename [xrni_filename ...]
 
     GPL v3+ 2016 Olivier Jolly
 
     positional arguments:
-      xrni_filename      input file in XRNI format
+      xrni_filename         input file in XRNI format
 
     optional arguments:
-      -h, --help         show this help message and exit
-      -d, --debug        debug parsing [default: False]
-      -a, --add          add a tag
-      -c, --clear        clear all tags
-      -r, --remove       remove a tag
-      -v, --view         view all tags [default action]
-      -t TAG, --tag TAG  tag name [default reads from standard input]
+      -h, --help            show this help message and exit
+      -d, --debug           debug parsing [default: False]
+      -a TAGS_TO_ADD, --add TAGS_TO_ADD
+                            add a tag
+      -c, --clear           clear all tags
+      -r TAGS_TO_REMOVE, --remove TAGS_TO_REMOVE
+                            remove a tag
+      -v, --view            view all tags [default action]
 
     Display or change XRNI tags
+
+xrniorganise
+------------
+
+**xrniorganise** is a command line utility to organise your renoise instruments (.xrni) by tags.
+It creates a view of your instrument library using instrument tags, until renoise features a native tag
+powered instrument library search.
+Using symbolic links to create instruments views, it is only compatible with unix OSes (patches for
+supporting other OSes are welcome).
+
+Instruments which aren't tagged at all will be linked into the "untagged" directory.
+
+Note that you can incrementally populate your library view, as **xrniorganise** will not remove existing
+instruments. It also means that if you switch a tag from *old* to *new* and run **xrniorganise** again,
+your instrument(s) will be linked both in the *old* and *new* directories. When you rename or remove tags,
+you can use the *-c* command line argument which makes so that your destination directory is cleaned before
+having any link created.
+
+Directory cleaning attempts to be as conservative as possible (it's a recursive removal after all, it could
+damage stuff if broken) by only removing symbolic links and empty directories. It implies that any regular file
+you'll place inside the destination directory will abort cleaning.
+
+Here is an example session:
+
+.. code:: shell
+
+    # initially, we have some untagged, unsorted xrni files
+
+    $ find unsorted_xrni/ sorted_xrni/
+
+    unsorted_xrni/
+    unsorted_xrni/0_Arco Strings.xrni
+    unsorted_xrni/6_Zip.xrni
+    unsorted_xrni/0_Flute.xrni
+    unsorted_xrni/8_Oboe.xrni
+
+    sorted_xrni/
+
+    # we tag them with xrnitag CLI (or "instrument info" tool)
+
+    $ xrnitag -a orchestral unsorted_xrni/0_Arco\ Strings.xrni unsorted_xrni/0_Flute.xrni unsorted_xrni/8_Oboe.xrni
+    $ xrnitag -a sfx unsorted_xrni/6_Zip.xrni
+    $ xrnitag -a woodwind unsorted_xrni/0_Flute.xrni unsorted_xrni/8_Oboe.xrni
+    $ xrnitag -a loop unsorted_xrni/6_Zip.xrni unsorted_xrni/8_Oboe.xrni unsorted_xrni/0_Arco\ Strings.xrni
+
+    # them, we create a library view based on those tags
+
+    $ xrniorganise -o sorted_xrni/ unsorted_xrni/*
+
+    # now, you can see links to actual instruments based on their tags
+
+    $ find unsorted_xrni/ sorted_xrni/
+
+    unsorted_xrni/
+    unsorted_xrni/0_Arco Strings.xrni
+    unsorted_xrni/6_Zip.xrni
+    unsorted_xrni/0_Flute.xrni
+    unsorted_xrni/8_Oboe.xrni
+
+    sorted_xrni/
+    sorted_xrni/woodwind
+    sorted_xrni/woodwind/0_Flute.xrni
+    sorted_xrni/woodwind/8_Oboe.xrni
+    sorted_xrni/loop
+    sorted_xrni/loop/0_Arco Strings.xrni
+    sorted_xrni/loop/6_Zip.xrni
+    sorted_xrni/loop/8_Oboe.xrni
+    sorted_xrni/sfx
+    sorted_xrni/sfx/6_Zip.xrni
+    sorted_xrni/orchestral
+    sorted_xrni/orchestral/0_Arco Strings.xrni
+    sorted_xrni/orchestral/0_Flute.xrni
+    sorted_xrni/orchestral/8_Oboe.xrni
+
+Here is the summary of all options::
+
+    usage: xrniorganise [-h] [-d] [-c] [-n] [-r] -o OUTPUT_DIR
+                        xrni_filename [xrni_filename ...]
+
+    GPL v3+ 2016 Olivier Jolly
+
+    positional arguments:
+      xrni_filename         input file in XRNI format
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -d, --debug           debug parsing [default: False]
+      -c, --clean           clean destination directory before operations
+      -n, --dry-run         don't actually perform filesystem operations [default:
+                            False]
+      -r, --recursive       recursively parse directories [default: False]
+      -o OUTPUT_DIR, --ouput-dir OUTPUT_DIR
+                            output directory
+
+    Organise XRNI according to their tags
+
+
 
 
 Library use
