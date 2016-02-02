@@ -121,6 +121,7 @@ setup(
             'xrnireencode=rnsutils.xrnireencode:main',
             'xrnicomment=rnsutils.xrnicomment:main',
             'xrnitag=rnsutils.xrnitag:main',
+            'xrniorganise=rnsutils.xrniorganise:main',
         ],
     },
 
