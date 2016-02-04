@@ -150,7 +150,9 @@ class RenoiseInstrument(object):
             logging.error("Destination file %s exists and overwrite was not forced", filename)
             return
 
-        with ZipFile(filename, 'w', compression=ZIP_DEFLATED) as z:
+        temp_filename = filename + '.part'
+
+        with ZipFile(temp_filename, 'w', compression=ZIP_DEFLATED) as z:
             objectify.deannotate(self.root, cleanup_namespaces=True, xsi_nil=True)
             z.writestr("Instrument.xml", etree.tostring(self.root, pretty_print=True))
             for sample_idx, sample in enumerate(self.sample_data):
@@ -158,6 +160,8 @@ class RenoiseInstrument(object):
                                                                     Sample[sample_idx].Name,
                                                                     guesstimate_audio_extension(sample) or "wav"),
                            sample)
+
+        os.rename(temp_filename, filename)
 
     @property
     def samples(self):
