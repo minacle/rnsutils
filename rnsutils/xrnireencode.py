@@ -64,7 +64,7 @@ def main(argv=None):
         # process options
         opts = parser.parse_args(argv)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")
@@ -89,14 +89,14 @@ def main(argv=None):
                                               renoise_instrument.sample_data]
 
             # save the output file
-            filename_without_extension, extension = os.path.splitext(os.path.basename(xrni_filename))
+            filename_without_extension, _ = os.path.splitext(os.path.basename(xrni_filename))
             output_filename = os.path.join(opts.output_dir or os.path.dirname(xrni_filename),
                                            '{}.{}.xrni'.format(filename_without_extension, opts.encoding))
             renoise_instrument.save(output_filename)
 
             if not opts.quiet:
                 print("Saved {}".format(output_filename))
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             if not opts.quiet:
                 print("FAILED")
             logging.exception("Failed to reencode instrument")

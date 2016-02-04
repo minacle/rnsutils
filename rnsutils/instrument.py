@@ -275,6 +275,6 @@ if __name__ == "__main__":
     instrument = RenoiseInstrument('basic.xrni')
     pprint.pprint(instrument)
     pprint.pprint(instrument.samples)
-    #  s = instrument.samples[0]
+    # s = instrument.samples[0]
     # print(s.foo())
     instrument.save('generated.xrni')
