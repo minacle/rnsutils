@@ -61,7 +61,7 @@ def main(argv=None):
     program_version = "v0.8"
     program_build_date = "%s" % __updated__
 
-    program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
+    program_version_string = 'xrniorganise %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Organise XRNI according to their tags'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
@@ -81,6 +81,7 @@ def main(argv=None):
         parser.add_argument("-r", "--recursive", dest="recurse_dir", action="store_true", default=False,
                             help="recursively parse directories [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir", help="output directory", required=True)
+        parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
 

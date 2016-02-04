@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""CLI for reencoding XRNI files"""
+
 from __future__ import print_function
 
 import argparse
@@ -31,11 +33,12 @@ __author__ = 'olivier@pcedev.com'
 
 
 def main(argv=None):
+    """CLI entry point for reencoding XRNI files"""
     program_name = os.path.basename(sys.argv[0])
     program_version = "v0.6"
     program_build_date = "%s" % __updated__
 
-    program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
+    program_version_string = 'xrnireencode %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Reencode samples in renoise instrument'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
@@ -54,6 +57,7 @@ def main(argv=None):
                             help="quiet operation [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
                             help="output directory [default: current directory]")
+        parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
 

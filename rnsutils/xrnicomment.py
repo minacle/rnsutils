@@ -39,7 +39,7 @@ def main(argv=None):
     program_version = "v0.8"
     program_build_date = "%s" % __updated__
 
-    program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
+    program_version_string = 'xrnicomment %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Display or change XRNI comments'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
@@ -60,8 +60,7 @@ def main(argv=None):
                             help="edit message content [default reads from standard input]")
         parser.add_argument("-r", "--remove", dest="action", action="store_const", const=ACTION_DELETE,
                             help="remove comment")
-        parser.add_argument("-v", "--view", dest="action", action="store_const", const=ACTION_VIEW,
-                            help="view comment [default action]")
+        parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
 

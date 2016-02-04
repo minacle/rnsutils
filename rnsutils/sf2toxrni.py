@@ -70,10 +70,10 @@ class Sf2ToXrni(object):
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Hold.Value = self.to_renoise_time(
             sf2_bag.volume_envelope_hold) or default_modulation_set.ahdsr_hold
 
-        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = (
-                                                                                       sf2_bag.volume_envelope_sustain is not None and (
-                                                                                           max(0,
-                                                                                               1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
+        renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Sustain.Value = \
+            (sf2_bag.volume_envelope_sustain is not None and (
+                max(0,
+                    1 - sf2_bag.volume_envelope_sustain / 96.))) or default_modulation_set.ahdsr_sustain
 
         renoise_modulation_set.Devices.SampleAhdsrModulationDevice.Release.Value = self.to_renoise_time(
             sf2_bag.volume_envelope_release) or default_modulation_set.ahdsr_release
@@ -218,10 +218,10 @@ class Sf2ToXrni(object):
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v0.6"
+    program_version = "v0.8"
     program_build_date = "%s" % __updated__
 
-    program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
+    program_version_string = 'sf2toxrni %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Convert sf2 file into renoise instrument'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
@@ -247,6 +247,7 @@ def main(argv=None):
                             help="output directory [default: current directory]")
         parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
                             default="empty-31.xrni")
+        parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("sf2_filename", help="input file in SoundFont2 format", nargs="+")
 

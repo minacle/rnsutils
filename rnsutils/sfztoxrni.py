@@ -267,10 +267,10 @@ class SfzToXrni(object):
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v0.6"
+    program_version = "v0.8"
     program_build_date = "%s" % __updated__
 
-    program_version_string = '%%prog %s (%s)' % (program_version, program_build_date)
+    program_version_string = 'sfztoxrni %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Convert SFZ file into renoise instrument'''
     program_license = "GPL v3+ 2016 Olivier Jolly"
 
@@ -296,6 +296,7 @@ def main(argv=None):
         parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
                             help="show unused generators [default: %(default)s]")
         parser.add_argument("--no-unused", dest="show_unused", action="store_false")
+        parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("sfz_filename", help="input file in SFZ format", nargs="+")
 
