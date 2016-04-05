@@ -31,7 +31,7 @@ from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
 
 __date__ = '2016-01-22'
-__updated__ = '2016-01-28'
+__updated__ = '2016-04-05'
 __author__ = 'olivier@pcedev.com'
 
 
@@ -86,12 +86,19 @@ class Sf2ToXrni(object):
         renoise_sample.Mapping.BaseNote = sf2_bag.base_note or (
             sf2_bag.sample and sf2_bag.sample.original_pitch) or default_sample.Mapping.BaseNote
 
-        # key mapping (key range and velocity)
+        # key mapping (key range, velocity and key mapping to pitch)
         renoise_sample.Mapping.NoteStart, renoise_sample.Mapping.NoteEnd = sf2_bag.key_range or (
             default_sample.Mapping.NoteStart, default_sample.Mapping.NoteEnd)
 
         renoise_sample.Mapping.VelocityStart, renoise_sample.Mapping.VelocityEnd = sf2_bag.velocity_range or (
             default_sample.Mapping.VelocityStart, default_sample.Mapping.VelocityEnd)
+
+        midi_key_pitch_influence = sf2_bag.midi_key_pitch_influence
+        if midi_key_pitch_influence != 0 and midi_key_pitch_influence != 100 and midi_key_pitch_influence is not None:
+            sys.stderr.write(
+                "Unsupported MIDI key influence on pitch, assuming 100%: {}%\n".format(midi_key_pitch_influence))
+
+        renoise_sample.Mapping.MapKeyToPitch = (midi_key_pitch_influence != 0)
 
     def load_global_sample_settings(self, sf2_instrument, renoise_global_sample, renoise_global_modulation_set):
         global_chorus_send = 0
@@ -218,7 +225,7 @@ class Sf2ToXrni(object):
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v0.8"
+    program_version = "v0.9"
     program_build_date = "%s" % __updated__
 
     program_version_string = 'sf2toxrni %s (%s)' % (program_version, program_build_date)

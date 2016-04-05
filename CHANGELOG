@@ -1,8 +1,11 @@
+## [Unreleased]
 ### Changed
 - robustify instrument saving (creating temporary file and renaming it on success)
+- added support for midi key influence to pitch = 0% to enable drum kit like sf2 converts
 
 ## [0.8.0] - 2016-02-02
 ### Added
+- added xrnireencode CLI
 - added xrnicomment CLI
 - added xrnitag CLI
 - added xrniorganise CLI
