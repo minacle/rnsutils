@@ -70,3 +70,44 @@ def encode_audio_file(sample_content, encoding):
         return _encode_ogg(sample_content)
 
     return sample_content
+
+
+def expand_keymap(instrument):
+    """expand zones 'horizontally', ie keyranges, to cover as much as possible the whole key mapping"""
+    for velocity in range(0, 256):
+
+        minimum_note_start = None
+        maximum_note_end = None
+
+        # for each velocity, detect extremum zones
+        for sample_idx, sample in enumerate(instrument.root.SampleGenerator.Samples.Sample):
+
+            # only consider zones matching the current velocity
+            if not (sample.Mapping.VelocityStart <= velocity <= sample.Mapping.VelocityEnd):
+                continue
+
+            if minimum_note_start is None or sample.Mapping.NoteStart < minimum_note_start:
+                minimum_note_start = sample.Mapping.NoteStart
+
+            if maximum_note_end is None or sample.Mapping.NoteEnd > maximum_note_end:
+                maximum_note_end = sample.Mapping.NoteEnd
+
+        # if for the current velocity, we already span the whole range, no need to adapt any zone
+        if minimum_note_start == 0 and maximum_note_end >= 119:
+            continue
+
+        # else, extends every zone part being an extremum (there can be more than one for layered zones)
+        for sample in instrument.root.SampleGenerator.Samples.Sample:
+
+            if not (sample.Mapping.VelocityStart <= velocity <= sample.Mapping.VelocityEnd):
+                continue
+
+            if sample.Mapping.NoteStart == minimum_note_start:
+                logging.debug("Changing velocity range from %d-%d to %d-%d", sample.Mapping.NoteStart,
+                              sample.Mapping.NoteEnd, 0, sample.Mapping.NoteEnd)
+                sample.Mapping.NoteStart = 0
+
+            if sample.Mapping.NoteEnd == maximum_note_end:
+                logging.debug("Changing velocity range from %d-%d to %d-%d", sample.Mapping.NoteStart,
+                              sample.Mapping.NoteEnd, sample.Mapping.NoteStart, 119)
+                sample.Mapping.NoteEnd = 119

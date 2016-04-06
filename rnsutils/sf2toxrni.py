@@ -26,7 +26,7 @@ import os
 from copy import deepcopy
 
 from rnsutils.instrument import RenoiseInstrument
-from rnsutils.utils import ENCODING_NONE, encode_audio_file, ENCODING_FLAC, ENCODING_OGG
+from rnsutils.utils import ENCODING_NONE, encode_audio_file, ENCODING_FLAC, ENCODING_OGG, expand_keymap
 from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
 
@@ -250,6 +250,9 @@ def main(argv=None):
         parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
                             help="show unused generators [default: %(default)s]")
         parser.add_argument("--no-unused", dest="show_unused", action="store_false")
+        parser.add_argument("-i", "--instrument", dest="instruments_index", action="append", type=int,
+                            help="instrument index to extract [default: all]")
+        parser.add_argument("--no-expand-keymap", dest="no_expand_keymap", action="store_true")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
                             help="output directory [default: current directory]")
         parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
@@ -288,6 +291,9 @@ def main(argv=None):
                 if sf2_instrument.is_sentinel():
                     continue
 
+                if opts.instruments_index and instrument_idx not in opts.instruments_index:
+                    continue
+
                 if not opts.quiet:
                     print("Converting '{}'...".format(sf2_instrument.name), end='')
 
@@ -295,6 +301,9 @@ def main(argv=None):
                 try:
                     renoise_instrument = RenoiseInstrument(template_filename=opts.template)
                     sf2_to_xrni.convert_instrument(sf2_instrument, renoise_instrument)
+
+                    if not opts.no_expand_keymap:
+                        expand_keymap(renoise_instrument)
 
                     output_filename = os.path.join(opts.output_dir or '',
                                                    '{}_{}.xrni'.format(instrument_idx, renoise_instrument.name))
