@@ -57,6 +57,8 @@ def main(argv=None):
                             help="quiet operation [default: %(default)s]")
         parser.add_argument("-o", "--ouput-dir", dest="output_dir",
                             help="output directory [default: current directory]")
+        parser.add_argument("-s", "--sample", dest="samples_index", action="append", type=int,
+                            help="sample index to reencode [default: all]")
         parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("xrni_filename", help="input file in XRNI format", nargs="+")
@@ -85,8 +87,16 @@ def main(argv=None):
             renoise_instrument = RenoiseInstrument(xrni_filename)
 
             # reencode all samples
-            renoise_instrument.sample_data = [encode_audio_file(sample, opts.encoding) for sample in
-                                              renoise_instrument.sample_data]
+            if opts.samples_index:
+                for sample_index in opts.samples_index:
+                    try:
+                        renoise_instrument.sample_data[sample_index] = encode_audio_file(
+                            renoise_instrument.sample_data[sample_index], opts.encoding)
+                    except IndexError:
+                        logging.error("Failed to convert sample %d", sample_index)
+            else:
+                renoise_instrument.sample_data = [encode_audio_file(sample, opts.encoding) for sample in
+                                                  renoise_instrument.sample_data]
 
             # save the output file
             filename_without_extension, _ = os.path.splitext(os.path.basename(xrni_filename))
