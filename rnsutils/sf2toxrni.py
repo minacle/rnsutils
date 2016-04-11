@@ -39,10 +39,11 @@ class Sf2ToXrni(object):
     WHITELIST_UNUSED_GEN_OPERS = {Sf2Gen.OPER_INITIAL_ATTENUATION, Sf2Gen.OPER_VIB_LFO_TO_PITCH,
                                   Sf2Gen.OPER_DELAY_VIB_LFO, Sf2Gen.OPER_FREQ_VIB_LFO}
 
-    def __init__(self, show_unused=False, encoding=ENCODING_NONE, **kwargs):
+    def __init__(self, show_unused=False, encoding=ENCODING_NONE, force_center=False, **kwargs):
         self.show_unused = show_unused
         self.encoding = encoding
         self.unused_gens = set()
+        self.force_center = force_center
 
     def convert_bag(self, sf2_bag, renoise_sample, renoise_modulation_set, default_sample, default_modulation_set):
 
@@ -54,6 +55,8 @@ class Sf2ToXrni(object):
 
         # sample panning
         renoise_sample.Panning = (sf2_bag.pan and sf2_bag.pan + 0.5) or default_sample.Panning
+        if self.force_center:
+            renoise_sample.Panning = 0.5
 
         # sample tuning
         renoise_sample.Transpose = sf2_bag.tuning or default_sample.Transpose
@@ -238,6 +241,8 @@ def main(argv=None):
     try:
         parser = argparse.ArgumentParser(epilog=program_longdesc,
                                          description=program_license)
+        parser.add_argument("-c", "--force-center", dest="force_center", action="store_true", default="False",
+                            help="force panning of generated samples to center [default: %(default)s]")
         parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                             default=False,
                             help="debug parsing [default: %(default)s]")
@@ -247,9 +252,6 @@ def main(argv=None):
                             help="force overwriting existing files [default: %(default)s]")
         parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="quiet operation [default: %(default)s]")
-        parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
-                            help="show unused generators [default: %(default)s]")
-        parser.add_argument("--no-unused", dest="show_unused", action="store_false")
         parser.add_argument("-i", "--instrument", dest="instruments_index", action="append", type=int,
                             help="instrument index to extract [default: all]")
         parser.add_argument("--no-expand-keymap", dest="no_expand_keymap", action="store_true")
@@ -257,6 +259,9 @@ def main(argv=None):
                             help="output directory [default: current directory]")
         parser.add_argument("-t", dest="template", help="template filename [default: %(default)s]",
                             default="empty-31.xrni")
+        parser.add_argument("-u", "--unused", dest="show_unused", action="store_true", default=True,
+                            help="show unused generators [default: %(default)s]")
+        parser.add_argument("--no-unused", dest="show_unused", action="store_false")
         parser.add_argument("-v", "--version", action="version", version=program_version_string)
 
         parser.add_argument("sf2_filename", help="input file in SoundFont2 format", nargs="+")
