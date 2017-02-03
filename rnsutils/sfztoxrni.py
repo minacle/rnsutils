@@ -261,6 +261,11 @@ class SfzToXrni(object):
                 logging.info("Ignoring mute group info")
             elif key == 'default_path':
                 self.sfz_default_path = re.sub(r'\\+', r'/', value)
+
+                # remove first char if file separator
+                if self.sfz_default_path[0] in (r'/', r'\\'):
+                    self.sfz_default_path = self.sfz_default_path[1:]
+
             else:
                 unused_keys.append(key)
 

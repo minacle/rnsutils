@@ -4,6 +4,8 @@
 - added support for midi key influence to pitch = 0% to enable drum kit like sf2 converts
 - added keymap expansion when converting sf2 (to fill all key range)
 - added instrument selection via index when converting sf2
+- added support for sfz not height as midi number
+- added support for default_path directive
 
 ## [0.8.0] - 2016-02-02
 ### Added
