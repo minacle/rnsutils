@@ -104,6 +104,8 @@ class SfzToXrni(object):
         renoise_instrument.comment = "Converted from SFZ {} with sfztoxrni " \
                                      "( https://gitlab.com/zeograd/rnsutils )".format(sfz_filename)
 
+        renoise_instrument.root.GlobalProperties.MacrosVisible = False
+
         with open(sfz_filename, 'rt') as sfz_file:
             # convert instrument meta data
             renoise_instrument.name = os.path.basename(sfz_filename)
@@ -130,8 +132,8 @@ class SfzToXrni(object):
                 renoise_sample = deepcopy(renoise_default_sample)
                 renoise_modulation_set = deepcopy(renoise_default_modulation_set)
 
-                # link sample to its dedicated modulation set
-                renoise_sample.ModulationSetIndex = section_idx
+                # force modulation set index to 0, but the sf2 modulation set remains easily enabled if needed by user
+                renoise_sample.ModulationSetIndex = 0
 
                 renoise_sample.FileName = None
 
