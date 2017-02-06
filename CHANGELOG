@@ -6,6 +6,7 @@
 - added instrument selection via index when converting sf2
 - added support for sfz not height as midi number
 - added support for default_path directive
+- added support for random round robin directives (lorand, hirand)
 
 ## [0.8.0] - 2016-02-02
 ### Added
