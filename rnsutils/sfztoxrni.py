@@ -257,6 +257,14 @@ class SfzToXrni(object):
                     renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_CYCLE
             elif key == 'seq_length':
                 pass
+            elif key == 'lorand':
+                if float(value) > 0:
+                    logging.info("Switch the entire instrument to random sample round robin")
+                    renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_RANDOM
+            elif key == 'hirand':
+                if float(value) < 1:
+                    logging.info("Switch the entire instrument to random sample round robin")
+                    renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_RANDOM
             elif key == 'group':
                 logging.info("Ignoring mute group info")
             elif key == 'off_by':
