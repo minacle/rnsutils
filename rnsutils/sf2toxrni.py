@@ -31,7 +31,7 @@ from sf2utils.generator import Sf2Gen
 from sf2utils.sf2parse import Sf2File
 
 __date__ = '2016-01-22'
-__updated__ = '2016-04-05'
+__updated__ = '2017-02-08'
 __author__ = 'olivier@pcedev.com'
 
 
@@ -233,7 +233,7 @@ def main(argv=None):
 
     program_version_string = 'sf2toxrni %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Convert sf2 file into renoise instrument'''
-    program_license = "GPL v3+ 2016 Olivier Jolly"
+    program_license = "GPL v3+ 2016-2017 Olivier Jolly"
 
     if argv is None:
         argv = sys.argv[1:]

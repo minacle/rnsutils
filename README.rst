@@ -32,7 +32,7 @@ renoise instrument.
                      [-o OUTPUT_DIR] [-t TEMPLATE]
                      sf2_filename [sf2_filename ...]
 
-    GPL v3+ 2016 Olivier Jolly
+    GPL v3+ 2016-2017 Olivier Jolly
 
     positional arguments:
       sf2_filename          input file in SoundFont2 format
@@ -111,7 +111,7 @@ case sensitive filesystem). As SFZ support in Renoise will progress, this conver
                      [-t TEMPLATE] [-u] [--no-unused]
                      sfz_filename [sfz_filename ...]
 
-    GPL v3+ 2016 Olivier Jolly
+    GPL v3+ 2016-2017 Olivier Jolly
 
     positional arguments:
       sfz_filename          input file in SFZ format

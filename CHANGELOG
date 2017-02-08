@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.9.0] - 2017-02-08
 ### Added
 - added support for midi key influence to pitch = 0% to enable drum kit like sf2 converts
 - added keymap expansion when converting sf2 (to fill all key range)

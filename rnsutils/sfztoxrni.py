@@ -29,7 +29,7 @@ from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time, db_to
 from rnsutils.utils import ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG, encode_audio_file
 
 __date__ = '2016-01-28'
-__updated__ = '2017-02-03'
+__updated__ = '2017-02-08'
 __author__ = 'olivier@pcedev.com'
 
 
@@ -291,12 +291,12 @@ class SfzToXrni(object):
 
 def main(argv=None):
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v0.8"
+    program_version = "v0.9"
     program_build_date = "%s" % __updated__
 
     program_version_string = 'sfztoxrni %s (%s)' % (program_version, program_build_date)
     program_longdesc = '''Convert SFZ file into renoise instrument'''
-    program_license = "GPL v3+ 2016 Olivier Jolly"
+    program_license = "GPL v3+ 2016-2017 Olivier Jolly"
 
     if argv is None:
         argv = sys.argv[1:]
