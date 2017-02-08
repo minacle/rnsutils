@@ -29,7 +29,7 @@ from rnsutils.instrument import RenoiseInstrument, second_to_renoise_time, db_to
 from rnsutils.utils import ENCODING_NONE, ENCODING_FLAC, ENCODING_OGG, encode_audio_file
 
 __date__ = '2016-01-28'
-__updated__ = '2016-01-28'
+__updated__ = '2017-02-03'
 __author__ = 'olivier@pcedev.com'
 
 
@@ -57,10 +57,13 @@ SFZ_NOTE_LETTER_OFFSET = {'a': 9, 'b': 11, 'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 
 
 
 def sfz_note_to_midi_key(sfz_note):
-    sharp = '#' in sfz_note
-    letter = sfz_note[0].lower()
-    octave = int(sfz_note[-1])
-    return SFZ_NOTE_LETTER_OFFSET[letter] + ((octave + 1) * 12) + (1 if sharp else 0)
+    try:
+        return int(sfz_note)
+    except ValueError:
+        sharp = '#' in sfz_note
+        letter = sfz_note[0].lower()
+        octave = int(sfz_note[-1])
+        return SFZ_NOTE_LETTER_OFFSET[letter] + ((octave + 1) * 12) + (1 if sharp else 0)
 
 
 class SfzToXrni(object):
@@ -68,6 +71,7 @@ class SfzToXrni(object):
         self.encoding = encoding
         self.sfz_path = sfz_path
         self.show_unused = show_unused
+        self.sfz_default_path = ''
 
     def load_default_sample_settings(self, renoise_global_sample, renoise_global_modulation_set):
         renoise_global_modulation_set.Devices.SampleMixerModulationDevice.Cutoff.Value = self.freq_to_cutoff(20000)
@@ -100,6 +104,8 @@ class SfzToXrni(object):
         renoise_instrument.comment = "Converted from SFZ {} with sfztoxrni " \
                                      "( https://gitlab.com/zeograd/rnsutils )".format(sfz_filename)
 
+        renoise_instrument.root.GlobalProperties.MacrosVisible = False
+
         with open(sfz_filename, 'rt') as sfz_file:
             # convert instrument meta data
             renoise_instrument.name = os.path.basename(sfz_filename)
@@ -116,7 +122,7 @@ class SfzToXrni(object):
 
             for section_name, section_content in sfz_content:
 
-                if section_name == 'group':
+                if section_name in ('group', 'global'):
                     self.convert_section(section_name, section_content, renoise_default_sample,
                                          renoise_default_modulation_set, renoise_default_sample,
                                          renoise_default_modulation_set, renoise_instrument)
@@ -126,24 +132,27 @@ class SfzToXrni(object):
                 renoise_sample = deepcopy(renoise_default_sample)
                 renoise_modulation_set = deepcopy(renoise_default_modulation_set)
 
-                # link sample to its dedicated modulation set
-                renoise_sample.ModulationSetIndex = section_idx
+                # force modulation set index to 0, but the sf2 modulation set remains easily enabled if needed by user
+                renoise_sample.ModulationSetIndex = 0
+
+                renoise_sample.FileName = None
 
                 self.convert_section(section_name, section_content, renoise_sample, renoise_modulation_set,
                                      renoise_default_sample, renoise_default_modulation_set, renoise_instrument)
 
-                renoise_instrument.root.SampleGenerator.Samples.append(renoise_sample)
-                renoise_instrument.root.SampleGenerator.ModulationSets.append(renoise_modulation_set)
+                if renoise_sample.FileName:
+                    renoise_instrument.root.SampleGenerator.Samples.append(renoise_sample)
+                    renoise_instrument.root.SampleGenerator.ModulationSets.append(renoise_modulation_set)
 
-                # copy wav content from sfz to renoise
-                sample_filename = search_case_insensitive_path(
-                    os.path.join(self.sfz_path, str(renoise_sample.FileName)))
+                    # copy wav content from sfz to renoise
+                    sample_filename = search_case_insensitive_path(
+                        os.path.join(self.sfz_path, self.sfz_default_path, str(renoise_sample.FileName)))
 
-                if sample_filename is None:
-                    logging.info("missing sample file '%s'", renoise_sample.FileName)
-                else:
-                    with open(sample_filename, 'rb') as sample_content:
-                        renoise_instrument.sample_data.append(encode_audio_file(sample_content.read(), self.encoding))
+                    if sample_filename is None:
+                        logging.info("missing sample file '%s'", renoise_sample.FileName)
+                    else:
+                        with open(sample_filename, 'rb') as sample_content:
+                            renoise_instrument.sample_data.append(encode_audio_file(sample_content.read(), self.encoding))
 
                 section_idx += 1
 
@@ -248,10 +257,25 @@ class SfzToXrni(object):
                     renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_CYCLE
             elif key == 'seq_length':
                 pass
+            elif key == 'lorand':
+                if float(value) > 0:
+                    logging.info("Switch the entire instrument to random sample round robin")
+                    renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_RANDOM
+            elif key == 'hirand':
+                if float(value) < 1:
+                    logging.info("Switch the entire instrument to random sample round robin")
+                    renoise_instrument.root.SampleGenerator.KeyzoneOverlappingMode = RenoiseInstrument.OVERLAP_RANDOM
             elif key == 'group':
                 logging.info("Ignoring mute group info")
             elif key == 'off_by':
                 logging.info("Ignoring mute group info")
+            elif key == 'default_path':
+                self.sfz_default_path = re.sub(r'\\+', r'/', value)
+
+                # remove first char if file separator
+                if self.sfz_default_path[0] in (r'/', r'\\'):
+                    self.sfz_default_path = self.sfz_default_path[1:]
+
             else:
                 unused_keys.append(key)
 

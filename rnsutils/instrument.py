@@ -95,6 +95,7 @@ class RenoiseModulationSet(ObjectifiedElement):
 class RenoiseInstrument(object):
     OVERLAP_CYCLE = "Cycle"
     OVERLAP_ALL = "Play All"
+    OVERLAP_RANDOM = "Random"
 
     LOOP_NONE = "Off"
     LOOP_FORWARD = "Forward"

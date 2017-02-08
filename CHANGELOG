@@ -4,6 +4,9 @@
 - added keymap expansion when converting sf2 (to fill all key range)
 - added instrument selection via index when converting sf2
 - added panning overwrite to center when converting sf2
+- added support for sfz not height as midi number
+- added support for default_path directive
+- added support for random round robin directives (lorand, hirand)
 
 ### Changed
 - robustify instrument saving (creating temporary file and renaming it on success)
