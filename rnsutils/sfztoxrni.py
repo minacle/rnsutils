@@ -207,6 +207,8 @@ class SfzToXrni(object):
                 renoise_sample.Mapping.NoteStart = sfz_note_to_midi_key(value)
             elif key == 'hikey':
                 renoise_sample.Mapping.NoteEnd = sfz_note_to_midi_key(value)
+            elif key == 'key':
+                renoise_sample.Mapping.NoteStart = renoise_sample.Mapping.NoteEnd = sfz_note_to_midi_key(value)
             elif key == 'lovel':
                 renoise_sample.Mapping.VelocityStart = value
             elif key == 'hivel':
